@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faCircleCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import Countdown from '../components/Countdown.jsx';
 import { DAY_STATUS, fmtDateLong, fmtPrice, fmtTime, statusLabel } from '../format.js';
@@ -140,7 +142,8 @@ function VotePanel({ data, reload }) {
                   disabled={busy}
                   onClick={() => vote(r.id)}
                 >
-                  {mine ? '✓ Deine Stimme' : 'Abstimmen'}
+                  <FontAwesomeIcon icon={mine ? faCircleCheck : faCheck} />{' '}
+                  {mine ? 'Deine Stimme' : 'Abstimmen'}
                 </button>
               </div>
             </div>
@@ -253,11 +256,12 @@ function OrderPanel({ data, reload }) {
         </label>
         <div className="row">
           <button className="btn btn-primary" disabled={busy || !itemId}>
+            <FontAwesomeIcon icon={faCheck} />{' '}
             {myOrder ? 'Bestellung aktualisieren' : 'Verbindlich bestellen'}
           </button>
           {myOrder && (
             <button type="button" className="btn btn-danger-ghost" disabled={busy} onClick={remove}>
-              Bestellung löschen
+              <FontAwesomeIcon icon={faTrash} /> Bestellung löschen
             </button>
           )}
         </div>

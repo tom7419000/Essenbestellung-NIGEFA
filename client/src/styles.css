@@ -113,11 +113,18 @@ a { color: var(--accent-dark); }
 .nav a {
   text-decoration: none;
   color: var(--muted);
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
+
+/* Font-Awesome-Icons: einheitliche Größe und Ausrichtung in Navigation und Buttons */
+.nav a .svg-inline--fa { font-size: 0.9em; }
+.btn .svg-inline--fa { font-size: 0.9em; }
 
 .nav a:hover { background: var(--gray-soft); color: var(--text); }
 .nav a.active { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }

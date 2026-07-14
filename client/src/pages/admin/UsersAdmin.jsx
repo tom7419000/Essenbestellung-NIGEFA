@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faPen, faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
@@ -129,10 +131,10 @@ export default function UsersAdmin() {
                     </td>
                     <td className="actions">
                       <button className="btn btn-primary btn-sm" onClick={() => saveEdit(u.id)}>
-                        Speichern
+                        <FontAwesomeIcon icon={faCheck} /> Speichern
                       </button>
                       <button className="btn btn-sm" onClick={() => setEditingId(null)}>
-                        Abbrechen
+                        <FontAwesomeIcon icon={faXmark} /> Abbrechen
                       </button>
                     </td>
                   </tr>
@@ -151,11 +153,11 @@ export default function UsersAdmin() {
                     <td className="muted">••••••</td>
                     <td className="actions">
                       <button className="btn btn-sm" onClick={() => startEdit(u)}>
-                        Bearbeiten
+                        <FontAwesomeIcon icon={faPen} /> Bearbeiten
                       </button>
                       {u.id !== me.id && (
                         <button className="btn btn-danger-ghost btn-sm" onClick={() => remove(u)}>
-                          Löschen
+                          <FontAwesomeIcon icon={faTrash} /> Löschen
                         </button>
                       )}
                     </td>
@@ -206,7 +208,9 @@ export default function UsersAdmin() {
             </select>
           </label>
           <div className="form-actions">
-            <button className="btn btn-primary">Anlegen</button>
+            <button className="btn btn-primary">
+              <FontAwesomeIcon icon={faPlus} /> Anlegen
+            </button>
           </div>
         </form>
       </div>

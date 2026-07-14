@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRightToBracket } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useBranding } from '../branding/BrandingContext.jsx';
 
@@ -61,7 +63,7 @@ export default function LoginPage() {
           />
         </label>
         <button className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? 'Anmelden …' : 'Anmelden'}
+          <FontAwesomeIcon icon={faRightToBracket} /> {busy ? 'Anmelden …' : 'Anmelden'}
         </button>
       </form>
     </div>

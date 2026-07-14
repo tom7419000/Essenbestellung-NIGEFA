@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFloppyDisk, faRotateLeft, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { api, apiUpload } from '../../api.js';
 import { DEFAULT_COLORS, applyColors, useBranding } from '../../branding/BrandingContext.jsx';
 
@@ -102,9 +104,11 @@ export default function DesignAdmin() {
             kontrastsicher gewählt.
           </p>
           <div className="row">
-            <button className="btn btn-primary">Speichern</button>
+            <button className="btn btn-primary">
+              <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
+            </button>
             <button type="button" className="btn" onClick={resetColors}>
-              Auf Standard zurücksetzen
+              <FontAwesomeIcon icon={faRotateLeft} /> Auf Standard zurücksetzen
             </button>
           </div>
         </form>
@@ -190,11 +194,11 @@ function UploadCard({ title, hint, accept, maxBytes, endpoint, currentUrl, previ
         <div className="row wrap">
           <input ref={inputRef} type="file" accept={accept} onChange={upload} hidden />
           <button className="btn btn-primary" disabled={busy} onClick={() => inputRef.current.click()}>
-            {currentUrl ? `${title} ersetzen` : `${title} hochladen`}
+            <FontAwesomeIcon icon={faUpload} /> {currentUrl ? `${title} ersetzen` : `${title} hochladen`}
           </button>
           {currentUrl && (
             <button className="btn btn-danger-ghost" disabled={busy} onClick={remove}>
-              Entfernen
+              <FontAwesomeIcon icon={faTrash} /> Entfernen
             </button>
           )}
         </div>

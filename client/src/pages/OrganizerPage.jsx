@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import {
@@ -172,10 +174,10 @@ export default function OrganizerPage() {
               <h3>Einzelbestellungen ({detail.orders.length})</h3>
               <div className="row">
                 <button className="btn" onClick={() => bulkStatus('bestellt')}>
-                  Alle auf „Bestellt“
+                  <FontAwesomeIcon icon={faPaperPlane} /> Alle auf „Bestellt“
                 </button>
                 <button className="btn" onClick={() => bulkStatus('geliefert')}>
-                  Alle auf „Geliefert“
+                  <FontAwesomeIcon icon={faTruck} /> Alle auf „Geliefert“
                 </button>
               </div>
             </div>

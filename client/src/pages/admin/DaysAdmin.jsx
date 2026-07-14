@@ -1,4 +1,15 @@
 import { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCheck,
+  faEye,
+  faEyeSlash,
+  faFloppyDisk,
+  faPen,
+  faPlus,
+  faTrash,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
 import {
   DAY_STATUS,
@@ -218,6 +229,7 @@ export default function DaysAdmin() {
           </fieldset>
           <div className="row">
             <button className="btn btn-primary">
+              <FontAwesomeIcon icon={editingId ? faCheck : faPlus} />{' '}
               {editingId ? 'Änderungen speichern' : 'Tag anlegen'}
             </button>
             {editingId && (
@@ -229,7 +241,7 @@ export default function DaysAdmin() {
                   setForm(emptyForm(settings));
                 }}
               >
-                Abbrechen
+                <FontAwesomeIcon icon={faXmark} /> Abbrechen
               </button>
             )}
           </div>
@@ -274,13 +286,14 @@ export default function DaysAdmin() {
                         className="btn btn-sm"
                         onClick={() => setDetailId(detailId === d.id ? null : d.id)}
                       >
+                        <FontAwesomeIcon icon={detailId === d.id ? faEyeSlash : faEye} />{' '}
                         {detailId === d.id ? 'Details ausblenden' : 'Details'}
                       </button>
                       <button className="btn btn-sm" onClick={() => startEdit(d)}>
-                        Bearbeiten
+                        <FontAwesomeIcon icon={faPen} /> Bearbeiten
                       </button>
                       <button className="btn btn-danger-ghost btn-sm" onClick={() => remove(d)}>
-                        Löschen
+                        <FontAwesomeIcon icon={faTrash} /> Löschen
                       </button>
                     </td>
                   </tr>
@@ -313,7 +326,9 @@ export default function DaysAdmin() {
                 onChange={(e) => setSettings({ ...settings, defaultPhase2Time: e.target.value })}
               />
             </label>
-            <button className="btn btn-primary">Speichern</button>
+            <button className="btn btn-primary">
+              <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
+            </button>
           </form>
         </div>
       )}

@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCalendarDays,
+  faClipboardList,
+  faMoon,
+  faPalette,
+  faReceipt,
+  faRightFromBracket,
+  faStore,
+  faSun,
+  faUsers,
+  faUtensils,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useBranding } from '../branding/BrandingContext.jsx';
@@ -36,16 +49,30 @@ export default function Layout() {
           </span>
           <nav className="nav">
             <NavLink to="/" end>
-              Heute
+              <FontAwesomeIcon icon={faUtensils} fixedWidth /> Heute
             </NavLink>
-            <NavLink to="/meine-bestellungen">Meine Bestellungen</NavLink>
-            {showOrganizerLink && <NavLink to="/organisation">Organisation</NavLink>}
+            <NavLink to="/meine-bestellungen">
+              <FontAwesomeIcon icon={faReceipt} fixedWidth /> Meine Bestellungen
+            </NavLink>
+            {showOrganizerLink && (
+              <NavLink to="/organisation">
+                <FontAwesomeIcon icon={faClipboardList} fixedWidth /> Organisation
+              </NavLink>
+            )}
             {user.role === 'admin' && (
               <>
-                <NavLink to="/admin/tage">Tagesplanung</NavLink>
-                <NavLink to="/admin/restaurants">Restaurants</NavLink>
-                <NavLink to="/admin/benutzer">Benutzer</NavLink>
-                <NavLink to="/admin/design">Design</NavLink>
+                <NavLink to="/admin/tage">
+                  <FontAwesomeIcon icon={faCalendarDays} fixedWidth /> Tagesplanung
+                </NavLink>
+                <NavLink to="/admin/restaurants">
+                  <FontAwesomeIcon icon={faStore} fixedWidth /> Restaurants
+                </NavLink>
+                <NavLink to="/admin/benutzer">
+                  <FontAwesomeIcon icon={faUsers} fixedWidth /> Benutzer
+                </NavLink>
+                <NavLink to="/admin/design">
+                  <FontAwesomeIcon icon={faPalette} fixedWidth /> Design
+                </NavLink>
               </>
             )}
           </nav>
@@ -56,7 +83,7 @@ export default function Layout() {
               aria-label="Hell-/Dunkelmodus umschalten"
               onClick={() => setTheme(toggleTheme())}
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
             </button>
             <span className="user-name">
               {user.displayName}
@@ -69,7 +96,7 @@ export default function Layout() {
                 navigate('/login');
               }}
             >
-              Abmelden
+              <FontAwesomeIcon icon={faRightFromBracket} /> Abmelden
             </button>
           </div>
         </div>

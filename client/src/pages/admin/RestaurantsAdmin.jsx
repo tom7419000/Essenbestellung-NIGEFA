@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faFloppyDisk, faPen, faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
 import { fmtPrice, parsePriceInput, priceInputValue } from '../../format.js';
 
@@ -103,7 +105,9 @@ export default function RestaurantsAdmin() {
                 />
               </label>
               <div>
-                <button className="btn btn-primary">Anlegen</button>
+                <button className="btn btn-primary">
+                  <FontAwesomeIcon icon={faPlus} /> Anlegen
+                </button>
               </div>
             </form>
           </div>
@@ -250,7 +254,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
         <div className="row space-between">
           <h2>{data.restaurant.name}</h2>
           <button className="btn btn-danger-ghost btn-sm" onClick={removeRestaurant}>
-            Löschen / Deaktivieren
+            <FontAwesomeIcon icon={faTrash} /> Löschen / Deaktivieren
           </button>
         </div>
         <form className="form-grid" onSubmit={save}>
@@ -282,7 +286,9 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             aktiv (steht für neue Tage zur Auswahl)
           </label>
           <div className="form-actions">
-            <button className="btn btn-primary">Speichern</button>
+            <button className="btn btn-primary">
+              <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
+            </button>
           </div>
         </form>
       </div>
@@ -338,10 +344,10 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                       </td>
                       <td className="actions">
                         <button className="btn btn-primary btn-sm" onClick={() => saveItemEdit(item.id)}>
-                          Speichern
+                          <FontAwesomeIcon icon={faCheck} /> Speichern
                         </button>
                         <button className="btn btn-sm" onClick={() => setEditingItemId(null)}>
-                          Abbrechen
+                          <FontAwesomeIcon icon={faXmark} /> Abbrechen
                         </button>
                       </td>
                     </tr>
@@ -359,10 +365,10 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                       </td>
                       <td className="actions">
                         <button className="btn btn-sm" onClick={() => startItemEdit(item)}>
-                          Bearbeiten
+                          <FontAwesomeIcon icon={faPen} /> Bearbeiten
                         </button>
                         <button className="btn btn-danger-ghost btn-sm" onClick={() => removeItem(item)}>
-                          Löschen
+                          <FontAwesomeIcon icon={faTrash} /> Löschen
                         </button>
                       </td>
                     </tr>
@@ -392,7 +398,9 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             value={itemForm.price}
             onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
           />
-          <button className="btn btn-primary">Hinzufügen</button>
+          <button className="btn btn-primary">
+            <FontAwesomeIcon icon={faPlus} /> Hinzufügen
+          </button>
         </form>
       </div>
     </div>
