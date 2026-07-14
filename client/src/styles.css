@@ -29,6 +29,36 @@
 
   --radius: 12px;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
+
+  color-scheme: light;
+}
+
+/* ---------- Dark Mode ----------
+   Grundflächen werden dunkel; die abgeleiteten Soft-Töne folgen automatisch,
+   weil sie per color-mix() auf var(--card) basieren. Textfarben auf getönten
+   Flächen werden zur Lesbarkeit aufgehellt. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #14181d;
+  --card: #1d232b;
+  --text: #e6e9ee;
+  --muted: #9aa4b1;
+  --border: #323b46;
+  --gray-soft: #2a323c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.45);
+
+  --accent-dark: color-mix(in srgb, var(--color-primary) 65%, white);
+  --blue: color-mix(in srgb, var(--color-secondary) 70%, white);
+  --green: color-mix(in srgb, var(--color-accent) 70%, white);
+  --amber: #eba75f;
+  --red: #ff8a8a;
+
+  --accent-soft: color-mix(in srgb, var(--color-primary) 22%, var(--card));
+  --blue-soft: color-mix(in srgb, var(--color-secondary) 22%, var(--card));
+  --green-soft: color-mix(in srgb, var(--color-accent) 22%, var(--card));
+  --amber-soft: color-mix(in srgb, #e8940c 22%, var(--card));
+  --red-soft: color-mix(in srgb, #e03131 18%, var(--card));
 }
 
 * {
@@ -94,6 +124,7 @@ a { color: var(--accent-dark); }
 
 .topbar-user { display: flex; align-items: center; gap: 0.6rem; margin-left: auto; }
 .user-name { font-size: 0.92rem; display: flex; align-items: center; gap: 0.4rem; }
+.theme-toggle { padding: 0.35rem 0.5rem; font-size: 1.05rem; line-height: 1; }
 
 .content {
   width: 100%;

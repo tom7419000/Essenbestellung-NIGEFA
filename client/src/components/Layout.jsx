@@ -3,12 +3,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useBranding } from '../branding/BrandingContext.jsx';
+import { currentTheme, toggleTheme } from '../theme.js';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { branding } = useBranding();
   const navigate = useNavigate();
   const [showOrganizerLink, setShowOrganizerLink] = useState(user.role === 'admin');
+  const [theme, setTheme] = useState(currentTheme());
 
   useEffect(() => {
     if (user.role === 'admin') {
@@ -48,6 +50,14 @@ export default function Layout() {
             )}
           </nav>
           <div className="topbar-user">
+            <button
+              className="btn btn-ghost theme-toggle"
+              title={theme === 'dark' ? 'Zum hellen Modus wechseln' : 'Zum dunklen Modus wechseln'}
+              aria-label="Hell-/Dunkelmodus umschalten"
+              onClick={() => setTheme(toggleTheme())}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <span className="user-name">
               {user.displayName}
               {user.role === 'admin' && <span className="badge badge-admin">Admin</span>}
