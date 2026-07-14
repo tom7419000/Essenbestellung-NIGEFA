@@ -442,6 +442,15 @@ td.actions .btn { margin-left: 0.3rem; }
 
 .total-row td { font-weight: 700; border-top: 2px solid var(--border); }
 
+/* Besteller-Spalte in der Sammelbestellung: lange Listen abkürzen, voller Text im Tooltip */
+td.orderers {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
 .row-cancelled td { opacity: 0.5; text-decoration: line-through; }
 .row-cancelled td:last-child { text-decoration: none; }
 

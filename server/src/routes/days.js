@@ -228,8 +228,10 @@ daysRouter.get('/:id/full', (req, res) => {
       itemName: o.itemName || 'Unbekanntes Gericht',
       priceCents: o.priceCents,
       count: 0,
+      users: [],
     };
     entry.count += 1;
+    entry.users.push(o.userName);
     byItem.set(key, entry);
   }
   const summary = [...byItem.values()]

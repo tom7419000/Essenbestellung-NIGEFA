@@ -365,6 +365,35 @@ function DayDetail({ dayId }) {
           </span>
         ))}
       </div>
+      {detail.summary.length > 0 && (
+        <>
+          <h3>Sammelbestellung</h3>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th className="num">Anzahl</th>
+                  <th>Gericht</th>
+                  <th>Besteller</th>
+                  <th className="num">Summe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.summary.map((s, i) => (
+                  <tr key={i}>
+                    <td className="num">{s.count}×</td>
+                    <td>{s.itemName}</td>
+                    <td className="orderers" title={(s.users || []).join(', ')}>
+                      {(s.users || []).join(', ')}
+                    </td>
+                    <td className="num">{fmtPrice(s.totalCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       <h3>
         Bestellungen ({detail.orders.length}) – Gesamt {fmtPrice(detail.totalCents)}
       </h3>

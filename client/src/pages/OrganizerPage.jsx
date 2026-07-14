@@ -150,6 +150,7 @@ export default function OrganizerPage() {
                     <tr>
                       <th className="num">Anzahl</th>
                       <th>Gericht</th>
+                      <th>Besteller</th>
                       <th className="num">Einzelpreis</th>
                       <th className="num">Summe</th>
                     </tr>
@@ -159,12 +160,15 @@ export default function OrganizerPage() {
                       <tr key={i}>
                         <td className="num">{s.count}×</td>
                         <td>{s.itemName}</td>
+                        <td className="orderers" title={(s.users || []).join(', ')}>
+                          {(s.users || []).join(', ')}
+                        </td>
                         <td className="num">{fmtPrice(s.priceCents)}</td>
                         <td className="num">{fmtPrice(s.totalCents)}</td>
                       </tr>
                     ))}
                     <tr className="total-row">
-                      <td className="num" colSpan={3}>
+                      <td className="num" colSpan={4}>
                         Gesamt
                       </td>
                       <td className="num">{fmtPrice(detail.totalCents)}</td>
