@@ -160,14 +160,18 @@ const saveImportedItems = db.transaction((restaurantId, items, mode) => {
   );
 
   for (const it of items) {
-    importedNames.add(it.name.toLowerCase());
-    const found = byLowerName.get(it.name.toLowerCase());
+    const lower = it.name.toLowerCase();
+    importedNames.add(lower);
+    const found = byLowerName.get(lower);
     if (found) {
       update.run(it.name, it.description, it.priceCents, it.category, it.allergens, found.id);
       stats.updated += 1;
     } else {
-      insert.run(restaurantId, it.name, it.description, it.priceCents, it.category, it.allergens);
+      const info = insert.run(restaurantId, it.name, it.description, it.priceCents, it.category, it.allergens);
       stats.created += 1;
+      // Neu angelegte Namen merken, damit Duplikate im selben Import
+      // aktualisieren statt an der UNIQUE-Bedingung zu scheitern.
+      byLowerName.set(lower, { id: info.lastInsertRowid, name: it.name });
     }
   }
 
@@ -230,6 +234,37 @@ restaurantsRouter.post('/:id/menu/import-csv', requireAdmin, (req, res) => {
 
   const stats = saveImportedItems(restaurant.id, parsed.items, mode);
   res.json({ ...stats, importedTotal: parsed.items.length, errors: parsed.errors, mode });
+});
+
+// Geprüfte/korrigierte Gerichte aus der Import-Vorschau übernehmen
+// (siehe POST /api/menu-import/preview).
+restaurantsRouter.post('/:id/menu/import-items', requireAdmin, (req, res) => {
+  const restaurant = db.prepare('SELECT * FROM restaurants WHERE id = ?').get(req.params.id);
+  if (!restaurant) return res.status(404).json({ message: 'Restaurant nicht gefunden.' });
+
+  const rawItems = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (rawItems.length === 0) return res.status(400).json({ message: 'Keine Gerichte übermittelt.' });
+  if (rawItems.length > 500) return res.status(400).json({ message: 'Zu viele Gerichte (max. 500).' });
+  const mode = req.body?.mode === 'replace' ? 'replace' : 'append';
+
+  const items = [];
+  const seen = new Set();
+  let skipped = 0;
+  for (const raw of rawItems) {
+    const v = validateItemInput(raw);
+    if (v.error || seen.has(v.name?.toLowerCase())) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(v.name.toLowerCase());
+    items.push(v);
+  }
+  if (items.length === 0) {
+    return res.status(400).json({ message: 'Keine gültigen Gerichte übermittelt.' });
+  }
+
+  const stats = saveImportedItems(restaurant.id, items, mode);
+  res.json({ ...stats, importedTotal: items.length, skipped, mode });
 });
 
 export const menuItemsRouter = Router();

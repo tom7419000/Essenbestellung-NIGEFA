@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCheck,
+  faCloudArrowDown,
   faDownload,
   faFileImport,
   faFloppyDisk,
@@ -481,6 +482,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
       </div>
 
       <CsvImportCard restaurantId={restaurantId} onDone={async () => { await load(); await onChanged(); }} onError={onError} />
+      <UrlImportCard restaurantId={restaurantId} onDone={async () => { await load(); await onChanged(); }} />
     </div>
   );
 }
@@ -588,6 +590,240 @@ function CsvImportCard({ restaurantId, onDone, onError }) {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+const PROVIDER_LABELS = { lieferando: 'Lieferando', gastromia: 'Gastromia' };
+
+function UrlImportCard({ restaurantId, onDone }) {
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [mode, setMode] = useState('replace');
+  const [result, setResult] = useState(null);
+
+  async function loadPreview(e) {
+    e.preventDefault();
+    setError('');
+    setResult(null);
+    setPreview(null);
+    setBusy(true);
+    try {
+      const p = await api('/menu-import/preview', { method: 'POST', body: { url } });
+      setPreview(p);
+      setRows(
+        p.items.map((item) => ({
+          include: true,
+          category: item.category || '',
+          name: item.name,
+          description: item.description || '',
+          price: priceInputValue(item.priceCents),
+        }))
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function updateRow(index, patch) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  function setAll(include) {
+    setRows((prev) => prev.map((r) => ({ ...r, include })));
+  }
+
+  async function importSelected() {
+    setError('');
+    const selected = rows.filter((r) => r.include);
+    if (selected.length === 0) {
+      setError('Bitte mindestens ein Gericht auswählen.');
+      return;
+    }
+    const items = [];
+    for (const r of selected) {
+      const priceCents = parsePriceInput(r.price);
+      if (priceCents === undefined) {
+        setError(`Ungültiger Preis bei „${r.name || '?'}“ – bitte z. B. „8,50“ eingeben.`);
+        return;
+      }
+      if (!r.name.trim()) {
+        setError('Ein ausgewähltes Gericht hat keinen Namen.');
+        return;
+      }
+      items.push({
+        name: r.name,
+        category: r.category,
+        description: r.description,
+        allergens: '',
+        priceCents,
+      });
+    }
+    setBusy(true);
+    try {
+      const res = await api(`/restaurants/${restaurantId}/menu/import-items`, {
+        method: 'POST',
+        body: { mode, items },
+      });
+      setResult(res);
+      setPreview(null);
+      setRows([]);
+      await onDone();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const selectedCount = rows.filter((r) => r.include).length;
+
+  return (
+    <div className="card">
+      <h3>Von Lieferando importieren</h3>
+      <p className="muted">
+        URL der Restaurantseite eingeben (z. B.{' '}
+        <code>https://www.lieferando.de/speisekarte/…</code>). Die Speisekarte wird ausgelesen
+        und vor dem Import als Vorschau angezeigt.
+      </p>
+      {error && <div className="alert">{error}</div>}
+      {result && (
+        <div className="notice success">
+          Import abgeschlossen: {result.created} neu, {result.updated} aktualisiert
+          {result.mode === 'replace' && (
+            <>, {result.removed} entfernt, {result.deactivated} deaktiviert</>
+          )}
+          .
+        </div>
+      )}
+      <form className="row wrap" onSubmit={loadPreview}>
+        <input
+          style={{ flex: 1, minWidth: '240px' }}
+          type="url"
+          placeholder="https://www.lieferando.de/speisekarte/…"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          required
+        />
+        <button className="btn btn-primary" disabled={busy}>
+          <FontAwesomeIcon icon={faCloudArrowDown} /> {busy && !preview ? 'Lade …' : 'Vorschau laden'}
+        </button>
+      </form>
+
+      {preview && (
+        <div className="stack" style={{ marginTop: '0.9rem' }}>
+          <div className="notice">
+            {PROVIDER_LABELS[preview.provider] || preview.provider}
+            {preview.restaurantName && (
+              <>
+                {' '}
+                · erkannt: <b>{preview.restaurantName}</b>
+              </>
+            )}{' '}
+            · {preview.items.length} Gerichte gefunden. Einträge prüfen, bei Bedarf korrigieren
+            und dann importieren.
+          </div>
+          {(preview.warnings || []).map((w, i) => (
+            <div key={i} className="notice">{w}</div>
+          ))}
+          <div className="row wrap space-between">
+            <div className="row">
+              <button type="button" className="btn btn-sm" onClick={() => setAll(true)}>
+                Alle auswählen
+              </button>
+              <button type="button" className="btn btn-sm" onClick={() => setAll(false)}>
+                Alle abwählen
+              </button>
+            </div>
+            <div className="row wrap">
+              <label className="checkbox">
+                <input
+                  type="radio"
+                  name="urlmode"
+                  checked={mode === 'replace'}
+                  onChange={() => setMode('replace')}
+                />
+                Bestehende Karte ersetzen
+              </label>
+              <label className="checkbox">
+                <input
+                  type="radio"
+                  name="urlmode"
+                  checked={mode === 'append'}
+                  onChange={() => setMode('append')}
+                />
+                Ergänzen
+              </label>
+            </div>
+          </div>
+          <div className="table-scroll import-preview">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Kategorie</th>
+                  <th>Gericht</th>
+                  <th>Beschreibung</th>
+                  <th className="num">Preis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className={r.include ? '' : 'row-cancelled'}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={r.include}
+                        onChange={(e) => updateRow(i, { include: e.target.checked })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={r.category}
+                        onChange={(e) => updateRow(i, { category: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input value={r.name} onChange={(e) => updateRow(i, { name: e.target.value })} />
+                    </td>
+                    <td className="muted import-preview-desc" title={r.description}>
+                      {r.description || '–'}
+                    </td>
+                    <td className="num">
+                      <input
+                        className="input-price"
+                        value={r.price}
+                        onChange={(e) => updateRow(i, { price: e.target.value })}
+                        placeholder="8,50"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="row">
+            <button className="btn btn-primary" disabled={busy || selectedCount === 0} onClick={importSelected}>
+              <FontAwesomeIcon icon={faFileImport} /> {selectedCount} Gerichte importieren
+            </button>
+            <button
+              className="btn"
+              disabled={busy}
+              onClick={() => {
+                setPreview(null);
+                setRows([]);
+              }}
+            >
+              <FontAwesomeIcon icon={faXmark} /> Verwerfen
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

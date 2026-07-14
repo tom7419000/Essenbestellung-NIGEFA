@@ -462,6 +462,15 @@ td.orderers {
   color: var(--muted);
 }
 
+/* Import-Vorschau (Lieferando/Gastromia) */
+.import-preview td input:not(.input-price) { min-width: 9rem; }
+.import-preview-desc {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .row-cancelled td { opacity: 0.5; text-decoration: line-through; }
 .row-cancelled td:last-child { text-decoration: none; }
 

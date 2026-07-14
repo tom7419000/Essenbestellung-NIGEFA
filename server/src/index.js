@@ -12,6 +12,7 @@ import { daysRouter, ordersRouter } from './routes/days.js';
 import myRouter from './routes/my.js';
 import settingsRouter from './routes/settings.js';
 import brandingRouter, { faviconAlias } from './routes/branding.js';
+import menuImportRouter from './routes/menuImport.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -34,6 +35,7 @@ app.use('/api/orders', ordersRouter);
 app.use('/api/my', myRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/branding', brandingRouter);
+app.use('/api/menu-import', menuImportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Nicht gefunden.' }));
 
