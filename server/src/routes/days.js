@@ -39,9 +39,9 @@ function dayRestaurantsWithVotes(dayId) {
 function menuOf(restaurantId) {
   return db
     .prepare(
-      `SELECT id, name, description, price_cents AS priceCents
+      `SELECT id, name, description, price_cents AS priceCents, category, allergens
        FROM menu_items WHERE restaurant_id = ? AND is_active = 1
-       ORDER BY name COLLATE NOCASE`
+       ORDER BY category COLLATE NOCASE, name COLLATE NOCASE`
     )
     .all(restaurantId);
 }

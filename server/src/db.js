@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
   name          TEXT NOT NULL,
   description   TEXT NOT NULL DEFAULT '',
   price_cents   INTEGER,
+  category      TEXT NOT NULL DEFAULT '',
+  allergens     TEXT NOT NULL DEFAULT '',
   is_active     INTEGER NOT NULL DEFAULT 1,
   UNIQUE (restaurant_id, name)
 );
@@ -115,6 +117,18 @@ const migrations = [
         db.exec(`UPDATE restaurants SET has_menu = CASE
           WHEN EXISTS (SELECT 1 FROM menu_items mi WHERE mi.restaurant_id = restaurants.id)
           THEN 1 ELSE 0 END`);
+      }
+    },
+  },
+  {
+    version: 2,
+    name: 'menu_items.category/allergens (Kategorien & Allergene, CSV-Import)',
+    up() {
+      if (!columnExists('menu_items', 'category')) {
+        db.exec("ALTER TABLE menu_items ADD COLUMN category TEXT NOT NULL DEFAULT ''");
+      }
+      if (!columnExists('menu_items', 'allergens')) {
+        db.exec("ALTER TABLE menu_items ADD COLUMN allergens TEXT NOT NULL DEFAULT ''");
       }
     },
   },

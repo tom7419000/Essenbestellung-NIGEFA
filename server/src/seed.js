@@ -35,15 +35,16 @@ function upsertRestaurant(name, description, phone, website = '') {
     .run(name, description, phone, website).lastInsertRowid;
 }
 
-function upsertItem(restaurantId, name, description, priceCents) {
+function upsertItem(restaurantId, name, description, priceCents, category = '') {
   db.prepare(
-    `INSERT INTO menu_items (restaurant_id, name, description, price_cents)
-     VALUES (?, ?, ?, ?)
+    `INSERT INTO menu_items (restaurant_id, name, description, price_cents, category)
+     VALUES (?, ?, ?, ?, ?)
      ON CONFLICT (restaurant_id, name) DO UPDATE SET
        description = excluded.description,
        price_cents = excluded.price_cents,
+       category = excluded.category,
        is_active = 1`
-  ).run(restaurantId, name, description, priceCents);
+  ).run(restaurantId, name, description, priceCents, category);
   return db
     .prepare('SELECT id FROM menu_items WHERE restaurant_id = ? AND name = ?')
     .get(restaurantId, name).id;
@@ -62,39 +63,39 @@ const pizzeria = upsertRestaurant(
   '030 1234567',
   'https://bella-italia.example'
 );
-upsertItem(pizzeria, 'Pizza Margherita', 'Tomaten, Mozzarella, Basilikum', 850);
-upsertItem(pizzeria, 'Pizza Salami', 'Tomaten, Mozzarella, Salami', 950);
-const lasagne = upsertItem(pizzeria, 'Lasagne al Forno', 'Hausgemacht, mit Beilagensalat', 1090);
-upsertItem(pizzeria, 'Insalata Mista', 'Gemischter Salat mit Balsamico-Dressing', 720);
+upsertItem(pizzeria, 'Pizza Margherita', 'Tomaten, Mozzarella, Basilikum', 850, 'Pizza');
+upsertItem(pizzeria, 'Pizza Salami', 'Tomaten, Mozzarella, Salami', 950, 'Pizza');
+const lasagne = upsertItem(pizzeria, 'Lasagne al Forno', 'Hausgemacht, mit Beilagensalat', 1090, 'Pasta');
+upsertItem(pizzeria, 'Insalata Mista', 'Gemischter Salat mit Balsamico-Dressing', 720, 'Salate');
 
 const asia = upsertRestaurant(
   'Asia Wok Express',
   'Frisch aus dem Wok – auch vegetarisch.',
   '030 2345678'
 );
-upsertItem(asia, 'Gebratene Nudeln mit Hühnchen', 'Mit Gemüse und Sojasauce', 920);
-upsertItem(asia, 'Ente süß-sauer', 'Mit Reis und Gemüse', 1150);
-upsertItem(asia, 'Gemüse-Curry', 'Vegan, mit Kokosmilch und Jasminreis', 890);
-upsertItem(asia, 'Frühlingsrollen (4 Stück)', 'Mit süßem Chili-Dip', 450);
+upsertItem(asia, 'Gebratene Nudeln mit Hühnchen', 'Mit Gemüse und Sojasauce', 920, 'Hauptgerichte');
+upsertItem(asia, 'Ente süß-sauer', 'Mit Reis und Gemüse', 1150, 'Hauptgerichte');
+upsertItem(asia, 'Gemüse-Curry', 'Vegan, mit Kokosmilch und Jasminreis', 890, 'Hauptgerichte');
+upsertItem(asia, 'Frühlingsrollen (4 Stück)', 'Mit süßem Chili-Dip', 450, 'Vorspeisen');
 
 const burger = upsertRestaurant(
   'Burger Brothers',
   'Handgemachte Burger, auch vegetarisch/vegan.',
   '030 3456789'
 );
-const cheeseburger = upsertItem(burger, 'Classic Cheeseburger', 'Rind, Cheddar, Salat, Tomate', 1050);
-const bbq = upsertItem(burger, 'BBQ Bacon Burger', 'Rind, Bacon, BBQ-Sauce, Röstzwiebeln', 1200);
-const veggie = upsertItem(burger, 'Veggie Burger', 'Gemüse-Patty, Avocado-Creme', 980);
-upsertItem(burger, 'Süßkartoffel-Pommes', 'Mit Sour Cream', 490);
+const cheeseburger = upsertItem(burger, 'Classic Cheeseburger', 'Rind, Cheddar, Salat, Tomate', 1050, 'Burger');
+const bbq = upsertItem(burger, 'BBQ Bacon Burger', 'Rind, Bacon, BBQ-Sauce, Röstzwiebeln', 1200, 'Burger');
+const veggie = upsertItem(burger, 'Veggie Burger', 'Gemüse-Patty, Avocado-Creme', 980, 'Burger');
+upsertItem(burger, 'Süßkartoffel-Pommes', 'Mit Sour Cream', 490, 'Beilagen');
 
 const salat = upsertRestaurant(
   'Salatwerk',
   'Bowls und Salate, ideal für die leichte Mittagspause.',
   '030 4567890'
 );
-upsertItem(salat, 'Caesar Salad', 'Mit Hähnchenbrust und Parmesan', 890);
-upsertItem(salat, 'Falafel Bowl', 'Hummus, Couscous, gegrilltes Gemüse', 1020);
-upsertItem(salat, 'Quinoa-Salat', 'Mit Feta, Granatapfel und Minze', 960);
+upsertItem(salat, 'Caesar Salad', 'Mit Hähnchenbrust und Parmesan', 890, 'Salate');
+upsertItem(salat, 'Falafel Bowl', 'Hummus, Couscous, gegrilltes Gemüse', 1020, 'Bowls');
+upsertItem(salat, 'Quinoa-Salat', 'Mit Feta, Granatapfel und Minze', 960, 'Salate');
 
 // Beispiel für ein Restaurant ohne hinterlegte Speisekarte
 const imbiss = upsertRestaurant(

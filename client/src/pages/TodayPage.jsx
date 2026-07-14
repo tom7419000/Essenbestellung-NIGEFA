@@ -234,20 +234,31 @@ function OrderPanel({ data, reload }) {
       {error && <div className="alert">{error}</div>}
       <form onSubmit={save} className="stack">
         <div className="menu-list">
-          {menu.map((item) => (
-            <label key={item.id} className={`menu-item${itemId === item.id ? ' selected' : ''}`}>
-              <input
-                type="radio"
-                name="menuItem"
-                checked={itemId === item.id}
-                onChange={() => setItemId(item.id)}
-              />
-              <span className="menu-item-name">
-                {item.name}
-                {item.description && <small className="muted">{item.description}</small>}
-              </span>
-              <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
-            </label>
+          {groupByCategory(menu).map(([category, items]) => (
+            <div key={category || 'ohne-kategorie'} className="menu-group">
+              {category && <h3 className="menu-category">{category}</h3>}
+              {items.map((item) => (
+                <label key={item.id} className={`menu-item${itemId === item.id ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="menuItem"
+                    checked={itemId === item.id}
+                    onChange={() => setItemId(item.id)}
+                  />
+                  <span className="menu-item-name">
+                    {item.name}
+                    {(item.description || item.allergens) && (
+                      <small className="muted">
+                        {item.description}
+                        {item.description && item.allergens && ' · '}
+                        {item.allergens && <>Allergene: {item.allergens}</>}
+                      </small>
+                    )}
+                  </span>
+                  <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
+                </label>
+              ))}
+            </div>
           ))}
         </div>
         <label>
@@ -273,6 +284,18 @@ function OrderPanel({ data, reload }) {
       </form>
     </section>
   );
+}
+
+// Speisekarte nach Kategorie gruppieren (Server liefert bereits sortiert);
+// Gerichte ohne Kategorie erscheinen zuerst, ohne Zwischenüberschrift.
+function groupByCategory(menu) {
+  const map = new Map();
+  for (const item of menu) {
+    const category = item.category || '';
+    if (!map.has(category)) map.set(category, []);
+    map.get(category).push(item);
+  }
+  return [...map.entries()];
 }
 
 function NoMenuPanel({ data }) {

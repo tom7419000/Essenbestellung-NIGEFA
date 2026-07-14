@@ -1,11 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faFloppyDisk, faPen, faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCheck,
+  faDownload,
+  faFileImport,
+  faFloppyDisk,
+  faPen,
+  faPlus,
+  faTrash,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
 import { fmtPrice, parsePriceInput, priceInputValue } from '../../format.js';
 
 const EMPTY_RESTAURANT = { name: '', description: '', phone: '', website: '', hasMenu: true };
-const EMPTY_ITEM = { name: '', description: '', price: '' };
+const EMPTY_ITEM = { name: '', category: '', description: '', price: '', allergens: '' };
 
 export default function RestaurantsAdmin() {
   const [restaurants, setRestaurants] = useState(null);
@@ -200,7 +209,13 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
     try {
       await api(`/restaurants/${restaurantId}/menu`, {
         method: 'POST',
-        body: { name: itemForm.name, description: itemForm.description, priceCents },
+        body: {
+          name: itemForm.name,
+          category: itemForm.category,
+          description: itemForm.description,
+          allergens: itemForm.allergens,
+          priceCents,
+        },
       });
       setItemForm(EMPTY_ITEM);
       await load();
@@ -214,7 +229,9 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
     setEditingItemId(item.id);
     setItemEdit({
       name: item.name,
+      category: item.category || '',
       description: item.description,
+      allergens: item.allergens || '',
       price: priceInputValue(item.priceCents),
       isActive: item.isActive,
     });
@@ -232,7 +249,9 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
         method: 'PUT',
         body: {
           name: itemEdit.name,
+          category: itemEdit.category,
           description: itemEdit.description,
+          allergens: itemEdit.allergens,
           priceCents,
           isActive: itemEdit.isActive,
         },
@@ -327,6 +346,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
               <thead>
                 <tr>
                   <th>Gericht</th>
+                  <th>Kategorie</th>
                   <th>Beschreibung</th>
                   <th className="num">Preis</th>
                   <th>Status</th>
@@ -341,6 +361,19 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                         <input
                           value={itemEdit.name}
                           onChange={(e) => setItemEdit({ ...itemEdit, name: e.target.value })}
+                        />
+                        <input
+                          value={itemEdit.allergens}
+                          onChange={(e) => setItemEdit({ ...itemEdit, allergens: e.target.value })}
+                          placeholder="Allergene (optional)"
+                          style={{ marginTop: '0.3rem' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={itemEdit.category}
+                          onChange={(e) => setItemEdit({ ...itemEdit, category: e.target.value })}
+                          placeholder="z. B. Pizza"
                         />
                       </td>
                       <td>
@@ -378,7 +411,15 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                     </tr>
                   ) : (
                     <tr key={item.id}>
-                      <td>{item.name}</td>
+                      <td>
+                        {item.name}
+                        {item.allergens && (
+                          <small className="muted" style={{ display: 'block' }}>
+                            Allergene: {item.allergens}
+                          </small>
+                        )}
+                      </td>
+                      <td className="muted">{item.category || '–'}</td>
                       <td className="muted">{item.description || '–'}</td>
                       <td className="num">{fmtPrice(item.priceCents)}</td>
                       <td>
@@ -413,6 +454,11 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             required
           />
           <input
+            placeholder="Kategorie (optional)"
+            value={itemForm.category}
+            onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })}
+          />
+          <input
             placeholder="Beschreibung (optional)"
             value={itemForm.description}
             onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
@@ -423,11 +469,126 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             value={itemForm.price}
             onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
           />
+          <input
+            placeholder="Allergene (optional)"
+            value={itemForm.allergens}
+            onChange={(e) => setItemForm({ ...itemForm, allergens: e.target.value })}
+          />
           <button className="btn btn-primary">
             <FontAwesomeIcon icon={faPlus} /> Hinzufügen
           </button>
         </form>
       </div>
+
+      <CsvImportCard restaurantId={restaurantId} onDone={async () => { await load(); await onChanged(); }} onError={onError} />
+    </div>
+  );
+}
+
+const CSV_TEMPLATE = [
+  'Kategorie;Name;Beschreibung;Preis;Allergene',
+  'Pizza;Pizza Margherita;"Tomaten, Mozzarella, Basilikum";8,50;G',
+  'Pizza;Pizza Salami;"Tomaten, Mozzarella, Salami";9,50;"G,2,3"',
+  'Salate;Gemischter Salat;Mit Balsamico-Dressing;7,20;',
+  '',
+].join('\n');
+
+function CsvImportCard({ restaurantId, onDone, onError }) {
+  const fileRef = useRef(null);
+  const [mode, setMode] = useState('append');
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  function downloadTemplate() {
+    const blob = new Blob(['\uFEFF' + CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'speisekarte-vorlage.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function importFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    onError('');
+    setResult(null);
+    setBusy(true);
+    try {
+      const csv = await file.text();
+      const r = await api(`/restaurants/${restaurantId}/menu/import-csv`, {
+        method: 'POST',
+        body: { csv, mode },
+      });
+      setResult(r);
+      await onDone();
+    } catch (err) {
+      onError(err.message);
+      if (err.status === 400 && err.message) setResult(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3>Speisekarte per CSV importieren</h3>
+      <p className="muted">
+        Kopfzeile erforderlich: <code>Kategorie;Name;Beschreibung;Preis;Allergene</code> – nur
+        „Name“ ist Pflicht, Trennzeichen Semikolon oder Komma, Preis z. B. „8,50“. Fehlerhafte
+        Zeilen werden übersprungen und unten aufgelistet.
+      </p>
+      <div className="row wrap">
+        <label className="checkbox">
+          <input type="radio" name="csvmode" checked={mode === 'append'} onChange={() => setMode('append')} />
+          Ergänzen (gleichnamige Gerichte aktualisieren)
+        </label>
+        <label className="checkbox">
+          <input type="radio" name="csvmode" checked={mode === 'replace'} onChange={() => setMode('replace')} />
+          Ersetzen (nicht enthaltene Gerichte entfernen)
+        </label>
+      </div>
+      <div className="row wrap" style={{ marginTop: '0.6rem' }}>
+        <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={importFile} hidden />
+        <button className="btn btn-primary" disabled={busy} onClick={() => fileRef.current.click()}>
+          <FontAwesomeIcon icon={faFileImport} /> CSV-Datei wählen …
+        </button>
+        <button className="btn" onClick={downloadTemplate}>
+          <FontAwesomeIcon icon={faDownload} /> Vorlage herunterladen
+        </button>
+      </div>
+      {result && (
+        <>
+          <div className="notice success">
+            Import abgeschlossen: {result.created} neu, {result.updated} aktualisiert
+            {result.mode === 'replace' && (
+              <>, {result.removed} entfernt, {result.deactivated} deaktiviert</>
+            )}
+            .{result.errors.length > 0 && <> {result.errors.length} Zeile(n) übersprungen:</>}
+          </div>
+          {result.errors.length > 0 && (
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="num">Zeile</th>
+                    <th>Problem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.errors.map((e, i) => (
+                    <tr key={i}>
+                      <td className="num">{e.line}</td>
+                      <td>{e.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
