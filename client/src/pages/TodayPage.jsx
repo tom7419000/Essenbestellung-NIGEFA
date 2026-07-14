@@ -1,0 +1,288 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../api.js';
+import Countdown from '../components/Countdown.jsx';
+import { DAY_STATUS, fmtDateLong, fmtPrice, fmtTime, statusLabel } from '../format.js';
+
+export default function TodayPage() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setData(await api('/days/today'));
+      setError('');
+    } catch (e) {
+      setError(e.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 15_000);
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [load]);
+
+  if (error && !data) return <div className="alert">{error}</div>;
+  if (!data) return <div className="page-loading">Lädt …</div>;
+
+  if (!data.day) {
+    return (
+      <div className="card empty-state">
+        <div className="empty-emoji">🗓️</div>
+        <h2>Heute keine Bestellung</h2>
+        <p className="muted">Für heute wurde keine Abstimmung geplant. Schau später wieder vorbei!</p>
+      </div>
+    );
+  }
+
+  const { day } = data;
+  // Kurz warten, bis der Server den Phasenwechsel sicher vollzogen hat.
+  const reloadSoon = () => setTimeout(load, 1200);
+
+  return (
+    <div className="stack">
+      <header className="page-head card">
+        <div>
+          <h1>{fmtDateLong(day.date)}</h1>
+          <p className="muted">
+            {data.organizerName ? (
+              <>
+                Organisation heute: <b>{data.organizerName}</b>
+              </>
+            ) : (
+              'Für heute ist noch kein Organisator festgelegt.'
+            )}
+          </p>
+        </div>
+        <div className="page-head-side">
+          <span className={`badge status-${day.status}`}>{DAY_STATUS[day.status]}</span>
+          {day.status === 'phase1' && (
+            <span className="deadline">
+              Abstimmung endet {fmtTime(day.phase1Deadline)} Uhr ·{' '}
+              <Countdown deadline={day.phase1Deadline} serverNow={data.serverNow} onExpire={reloadSoon} />
+            </span>
+          )}
+          {day.status === 'phase2' && (
+            <span className="deadline">
+              Bestellschluss {fmtTime(day.phase2Deadline)} Uhr ·{' '}
+              <Countdown deadline={day.phase2Deadline} serverNow={data.serverNow} onExpire={reloadSoon} />
+            </span>
+          )}
+          {data.isOrganizer && (
+            <Link className="btn btn-ghost" to="/organisation">
+              Zur Organisation →
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {day.status === 'phase1' && <VotePanel data={data} reload={load} />}
+      {day.status !== 'phase1' && <WinnerBanner data={data} />}
+      {day.status === 'phase2' && <OrderPanel data={data} reload={load} />}
+      {day.status === 'closed' && <ClosedPanel data={data} />}
+    </div>
+  );
+}
+
+function VotePanel({ data, reload }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const maxVotes = Math.max(0, ...data.restaurants.map((r) => r.votes));
+
+  async function vote(restaurantId) {
+    setBusy(true);
+    setError('');
+    try {
+      if (data.myVote === restaurantId) {
+        await api(`/days/${data.day.id}/vote`, { method: 'DELETE' });
+      } else {
+        await api(`/days/${data.day.id}/vote`, { method: 'POST', body: { restaurantId } });
+      }
+      await reload();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2>Wo bestellen wir heute?</h2>
+      <p className="muted">
+        Stimme für ein Restaurant ab – du kannst deine Stimme bis zum Ende der Abstimmung ändern.
+      </p>
+      {error && <div className="alert">{error}</div>}
+      <div className="option-grid">
+        {data.restaurants.map((r) => {
+          const mine = data.myVote === r.id;
+          const leader = r.votes > 0 && r.votes === maxVotes;
+          return (
+            <div key={r.id} className={`option-card${mine ? ' selected' : ''}`}>
+              <div className="option-main">
+                <h3>
+                  {r.name} {leader && <span title="Führt aktuell">🏆</span>}
+                </h3>
+                {r.description && <p className="muted">{r.description}</p>}
+              </div>
+              <div className="option-side">
+                <span className="votes-badge">
+                  {r.votes} {r.votes === 1 ? 'Stimme' : 'Stimmen'}
+                </span>
+                <button
+                  className={`btn${mine ? ' btn-selected' : ''}`}
+                  disabled={busy}
+                  onClick={() => vote(r.id)}
+                >
+                  {mine ? '✓ Deine Stimme' : 'Abstimmen'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function WinnerBanner({ data }) {
+  if (!data.winner) return null;
+  return (
+    <section className="card winner-banner">
+      <div className="winner-emoji">🏆</div>
+      <div>
+        <h2>Heute bestellen wir bei: {data.winner.name}</h2>
+        <p className="muted">
+          {data.winnerVotes} {data.winnerVotes === 1 ? 'Stimme' : 'Stimmen'}
+          {data.winner.phone && <> · ☎ {data.winner.phone}</>}
+          {data.winner.website && (
+            <>
+              {' '}
+              ·{' '}
+              <a href={data.winner.website} target="_blank" rel="noreferrer">
+                Speisekarte
+              </a>
+            </>
+          )}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function OrderPanel({ data, reload }) {
+  const { day, menu, myOrder } = data;
+  const [itemId, setItemId] = useState(myOrder?.menuItemId ?? null);
+  const [note, setNote] = useState(myOrder?.note ?? '');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/days/${day.id}/order`, { method: 'POST', body: { menuItemId: itemId, note } });
+      await reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/days/${day.id}/order`, { method: 'DELETE' });
+      setItemId(null);
+      setNote('');
+      await reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2>Essen auswählen</h2>
+      {myOrder ? (
+        <div className="notice success">
+          Deine Bestellung ist gespeichert: <b>{myOrder.itemName}</b>
+          {myOrder.note && <> („{myOrder.note}“)</>}. Du kannst sie bis zum Bestellschluss ändern.
+        </div>
+      ) : (
+        <p className="muted">Wähle dein Gericht und gib optional eine Bemerkung an.</p>
+      )}
+      {error && <div className="alert">{error}</div>}
+      <form onSubmit={save} className="stack">
+        <div className="menu-list">
+          {menu.map((item) => (
+            <label key={item.id} className={`menu-item${itemId === item.id ? ' selected' : ''}`}>
+              <input
+                type="radio"
+                name="menuItem"
+                checked={itemId === item.id}
+                onChange={() => setItemId(item.id)}
+              />
+              <span className="menu-item-name">
+                {item.name}
+                {item.description && <small className="muted">{item.description}</small>}
+              </span>
+              <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
+            </label>
+          ))}
+        </div>
+        <label>
+          Bemerkung (optional)
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="z. B. ohne Zwiebeln, extra scharf …"
+            maxLength={500}
+          />
+        </label>
+        <div className="row">
+          <button className="btn btn-primary" disabled={busy || !itemId}>
+            {myOrder ? 'Bestellung aktualisieren' : 'Verbindlich bestellen'}
+          </button>
+          {myOrder && (
+            <button type="button" className="btn btn-danger-ghost" disabled={busy} onClick={remove}>
+              Bestellung löschen
+            </button>
+          )}
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function ClosedPanel({ data }) {
+  return (
+    <section className="card">
+      <h2>Bestellphase beendet</h2>
+      {data.myOrder ? (
+        <p>
+          Deine Bestellung: <b>{data.myOrder.itemName}</b> ({fmtPrice(data.myOrder.priceCents)})
+          {data.myOrder.note && <> – Bemerkung: „{data.myOrder.note}“</>} · Status:{' '}
+          <span className={`badge order-${data.myOrder.status}`}>{statusLabel(data.myOrder.status)}</span>
+        </p>
+      ) : (
+        <p className="muted">Du hast heute nichts bestellt.</p>
+      )}
+      <p className="muted">
+        Insgesamt {data.orderCount} {data.orderCount === 1 ? 'Bestellung' : 'Bestellungen'}
+        {data.organizerName && <> · Organisation: {data.organizerName}</>}
+      </p>
+    </section>
+  );
+}

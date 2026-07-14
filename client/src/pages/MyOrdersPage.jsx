@@ -1,0 +1,57 @@
+import { useEffect, useState } from 'react';
+import { api } from '../api.js';
+import { fmtDateShort, fmtPrice, statusLabel } from '../format.js';
+
+export default function MyOrdersPage() {
+  const [orders, setOrders] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api('/my/orders')
+      .then((d) => setOrders(d.orders))
+      .catch((e) => setError(e.message));
+  }, []);
+
+  if (error) return <div className="alert">{error}</div>;
+  if (!orders) return <div className="page-loading">Lädt …</div>;
+
+  return (
+    <div className="stack">
+      <div className="card">
+        <h1>Meine Bestellungen</h1>
+        {orders.length === 0 ? (
+          <p className="muted">Du hast bisher nichts bestellt.</p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Restaurant</th>
+                  <th>Gericht</th>
+                  <th>Bemerkung</th>
+                  <th className="num">Preis</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o.id}>
+                    <td>{fmtDateShort(o.date)}</td>
+                    <td>{o.restaurantName || '–'}</td>
+                    <td>{o.itemName || 'Unbekanntes Gericht'}</td>
+                    <td className="muted">{o.note || '–'}</td>
+                    <td className="num">{fmtPrice(o.priceCents)}</td>
+                    <td>
+                      <span className={`badge order-${o.status}`}>{statusLabel(o.status)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
