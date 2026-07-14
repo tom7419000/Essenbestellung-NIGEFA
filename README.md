@@ -71,7 +71,14 @@ npm start       # Express liefert API + Frontend gemeinsam auf Port 3001 aus
 
 Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 (sonst automatisch generiert und in `server/data/` abgelegt), `APP_TIMEZONE`
-(Standard `Europe/Berlin`).
+(Standard `Europe/Berlin`). Der Server lädt zusätzlich `server/.env`, das
+Frontend `client/.env` (Vorlagen: `*.env.example`).
+
+**Single Sign-On (optional):** Anmeldung über Microsoft Entra ID (Azure AD)
+per MSAL – Einrichtung und benötigte Azure-Werte siehe
+[docs/sso-entra-id.md](docs/sso-entra-id.md). Ohne Konfiguration bleibt die
+lokale Anmeldung aktiv. Dark Mode und Branding (Logo, Favicon, Farbschema)
+konfiguriert der Admin direkt in der App unter **Design**.
 
 ## Automatische Installation auf Ubuntu Server
 
@@ -112,6 +119,7 @@ Ein erneuter Aufruf aktualisiert die Anwendung, ohne Datenbank oder JWT-Secret z
 | [docs/datenbankmodell.md](docs/datenbankmodell.md) | Tabellen, ER-Diagramm, Statuslogik der Phasen |
 | [docs/seitenkonzept.md](docs/seitenkonzept.md) | Alle Seiten, Abläufe und Berechtigungen |
 | [docs/api-endpunkte.md](docs/api-endpunkte.md) | REST-API-Referenz mit Beispielen |
+| [docs/sso-entra-id.md](docs/sso-entra-id.md) | Single Sign-On mit Microsoft Entra ID einrichten (optional) |
 
 ## Projektstruktur
 

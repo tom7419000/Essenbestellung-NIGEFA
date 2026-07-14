@@ -192,12 +192,26 @@ else
   ok "Neues JWT-Secret erzeugt."
 fi
 
+# Bestehende Entra-ID-Konfiguration (SSO) bei Updates übernehmen.
+ENTRA_BLOCK=""
+if [ -f "$ENV_FILE" ]; then
+  ENTRA_BLOCK="$(grep '^ENTRA_' "$ENV_FILE" || true)"
+fi
+
 cat > "$ENV_FILE" <<EOF
 # Automatisch erzeugt von install-essen-nigefa.sh
 NODE_ENV=production
 PORT=${PORT}
 APP_TIMEZONE=${APP_TIMEZONE}
 JWT_SECRET=${JWT_SECRET}
+
+# Optional: Single Sign-On über Microsoft Entra ID (siehe docs/sso-entra-id.md).
+# Werte eintragen und Dienst neu starten; das Frontend benötigt zusätzlich
+# client/.env (VITE_ENTRA_*) und einen erneuten Build bzw. Skript-Lauf.
+# ENTRA_CLIENT_ID=
+# ENTRA_TENANT_ID=
+# ENTRA_AUTO_CREATE=
+${ENTRA_BLOCK}
 EOF
 chmod 600 "$ENV_FILE"
 ok "Konfiguration geschrieben (nur für root lesbar)."

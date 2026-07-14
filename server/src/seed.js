@@ -1,3 +1,4 @@
+import './env.js';
 import bcrypt from 'bcryptjs';
 import { db, initDb, setSetting } from './db.js';
 import { todayStr, zonedIso, TZ } from './util.js';
