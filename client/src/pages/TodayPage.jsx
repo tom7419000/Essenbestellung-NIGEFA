@@ -86,7 +86,12 @@ export default function TodayPage() {
 
       {day.status === 'phase1' && <VotePanel data={data} reload={load} />}
       {day.status !== 'phase1' && <WinnerBanner data={data} />}
-      {day.status === 'phase2' && <OrderPanel data={data} reload={load} />}
+      {day.status === 'phase2' &&
+        (data.winner && !data.winner.hasMenu ? (
+          <NoMenuPanel data={data} />
+        ) : (
+          <OrderPanel data={data} reload={load} />
+        ))}
       {day.status === 'closed' && <ClosedPanel data={data} />}
     </div>
   );
@@ -270,7 +275,37 @@ function OrderPanel({ data, reload }) {
   );
 }
 
+function NoMenuPanel({ data }) {
+  return (
+    <section className="card">
+      <h2>Essen auswählen</h2>
+      <div className="notice">
+        Für dieses Restaurant ist <b>keine Speisekarte hinterlegt</b> – bitte individuell
+        bestellen bzw. direkt anrufen{data.winner?.phone && <> (☎ {data.winner.phone})</>}
+        {data.organizerName && (
+          <>
+            {' '}
+            oder mit <b>{data.organizerName}</b> (Organisation) absprechen
+          </>
+        )}
+        .
+      </div>
+    </section>
+  );
+}
+
 function ClosedPanel({ data }) {
+  if (data.winner && !data.winner.hasMenu) {
+    return (
+      <section className="card">
+        <h2>Bestellphase beendet</h2>
+        <p className="muted">
+          Für dieses Restaurant war keine Speisekarte hinterlegt – die Bestellungen wurden
+          individuell abgesprochen.
+        </p>
+      </section>
+    );
+  }
   return (
     <section className="card">
       <h2>Bestellphase beendet</h2>

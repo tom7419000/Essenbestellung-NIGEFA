@@ -223,6 +223,7 @@ export default function DaysAdmin() {
                     onChange={() => toggleRestaurant(r.id)}
                   />
                   {r.name}
+                  {!r.hasMenu && <span className="badge badge-off">ohne Speisekarte</span>}
                 </label>
               ))}
             </div>

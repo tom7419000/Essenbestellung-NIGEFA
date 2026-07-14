@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
   description TEXT NOT NULL DEFAULT '',
   phone       TEXT NOT NULL DEFAULT '',
   website     TEXT NOT NULL DEFAULT '',
+  has_menu    INTEGER NOT NULL DEFAULT 1,
   is_active   INTEGER NOT NULL DEFAULT 1,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -96,8 +97,48 @@ CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items(restaurant_id);
 `;
 
+function columnExists(table, column) {
+  return db.pragma(`table_info(${table})`).some((c) => c.name === column);
+}
+
+// Additive, nicht-destruktive Migrationen für bestehende Installationen.
+// Der Stand wird in PRAGMA user_version verfolgt; neue Datenbanken erhalten
+// das aktuelle Schema direkt über die CREATE-TABLE-Anweisungen oben.
+const migrations = [
+  {
+    version: 1,
+    name: 'restaurants.has_menu (Restaurants ohne Speisekarte)',
+    up() {
+      if (!columnExists('restaurants', 'has_menu')) {
+        db.exec("ALTER TABLE restaurants ADD COLUMN has_menu INTEGER NOT NULL DEFAULT 1");
+        // Bestandsdaten: "ja" nur, wenn bereits Gerichte hinterlegt sind.
+        db.exec(`UPDATE restaurants SET has_menu = CASE
+          WHEN EXISTS (SELECT 1 FROM menu_items mi WHERE mi.restaurant_id = restaurants.id)
+          THEN 1 ELSE 0 END`);
+      }
+    },
+  },
+];
+
+export function runMigrations({ log = () => {} } = {}) {
+  const applied = [];
+  const current = db.pragma('user_version', { simple: true });
+  for (const m of migrations) {
+    if (m.version <= current) continue;
+    const tx = db.transaction(() => {
+      m.up();
+      db.pragma(`user_version = ${m.version}`);
+    });
+    tx();
+    applied.push(m);
+    log(`Migration ${m.version} angewendet: ${m.name}`);
+  }
+  return { from: current, to: db.pragma('user_version', { simple: true }), applied };
+}
+
 export function initDb() {
   db.exec(schema);
+  runMigrations({ log: (msg) => console.log(`[db] ${msg}`) });
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   insertSetting.run('default_phase1_time', '10:30');
   insertSetting.run('default_phase2_time', '11:45');

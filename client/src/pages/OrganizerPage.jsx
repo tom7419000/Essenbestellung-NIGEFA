@@ -113,6 +113,12 @@ export default function OrganizerPage() {
               </h2>
               <span className={`badge status-${detail.day.status}`}>{DAY_STATUS[detail.day.status]}</span>
             </div>
+            {detail.winner && !detail.winner.hasMenu && (
+              <div className="notice">
+                Für dieses Restaurant ist keine Speisekarte hinterlegt – Bestellungen werden
+                individuell abgesprochen und tauchen hier nicht auf.
+              </div>
+            )}
             {detail.day.status !== 'closed' && (
               <div className="notice">
                 Die Bestellphase läuft noch (Bestellschluss {fmtTime(detail.day.phase2Deadline)} Uhr) –

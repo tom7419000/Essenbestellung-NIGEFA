@@ -85,6 +85,14 @@ function organizerNameOf(day) {
   return row ? row.display_name : null;
 }
 
+function winnerInfo(restaurantId) {
+  const r = db
+    .prepare('SELECT id, name, description, phone, website, has_menu FROM restaurants WHERE id = ?')
+    .get(restaurantId);
+  if (!r) return null;
+  return { id: r.id, name: r.name, description: r.description, phone: r.phone, website: r.website, hasMenu: !!r.has_menu };
+}
+
 export const daysRouter = Router();
 daysRouter.use(requireAuth);
 
@@ -109,12 +117,10 @@ daysRouter.get('/today', (req, res) => {
   };
 
   if (day.status !== 'phase1' && day.winning_restaurant_id) {
-    payload.winner = db
-      .prepare('SELECT id, name, description, phone, website FROM restaurants WHERE id = ?')
-      .get(day.winning_restaurant_id);
+    payload.winner = winnerInfo(day.winning_restaurant_id);
     payload.winnerVotes =
       payload.restaurants.find((r) => r.id === day.winning_restaurant_id)?.votes ?? 0;
-    payload.menu = menuOf(day.winning_restaurant_id);
+    payload.menu = payload.winner.hasMenu ? menuOf(day.winning_restaurant_id) : [];
     payload.myOrder = myOrderOf(day.id, req.user.id);
     payload.orderCount = db
       .prepare("SELECT COUNT(*) AS n FROM orders WHERE day_id = ? AND status != 'storniert'")
@@ -168,6 +174,12 @@ daysRouter.post('/:id/order', (req, res) => {
   }
   if (day.status === 'closed') {
     return res.status(409).json({ message: 'Die Bestellphase ist bereits beendet.' });
+  }
+  const winner = winnerInfo(day.winning_restaurant_id);
+  if (winner && !winner.hasMenu) {
+    return res.status(409).json({
+      message: 'Für dieses Restaurant ist keine Speisekarte hinterlegt – bitte individuell bestellen.',
+    });
   }
   const { menuItemId, note } = req.body || {};
   const item = db
@@ -231,11 +243,7 @@ daysRouter.get('/:id/full', (req, res) => {
     day: mapDay(day),
     serverNow: new Date().toISOString(),
     organizerName: organizerNameOf(day),
-    winner: day.winning_restaurant_id
-      ? db
-          .prepare('SELECT id, name, description, phone, website FROM restaurants WHERE id = ?')
-          .get(day.winning_restaurant_id)
-      : null,
+    winner: day.winning_restaurant_id ? winnerInfo(day.winning_restaurant_id) : null,
     restaurants,
     orders,
     summary,

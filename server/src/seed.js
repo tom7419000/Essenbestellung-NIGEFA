@@ -96,6 +96,14 @@ upsertItem(salat, 'Caesar Salad', 'Mit Hähnchenbrust und Parmesan', 890);
 upsertItem(salat, 'Falafel Bowl', 'Hummus, Couscous, gegrilltes Gemüse', 1020);
 upsertItem(salat, 'Quinoa-Salat', 'Mit Feta, Granatapfel und Minze', 960);
 
+// Beispiel für ein Restaurant ohne hinterlegte Speisekarte
+const imbiss = upsertRestaurant(
+  'Döner-Imbiss am Markt',
+  'Keine Speisekarte hinterlegt – Bestellung individuell/telefonisch.',
+  '030 5678901'
+);
+db.prepare('UPDATE restaurants SET has_menu = 0 WHERE id = ?').run(imbiss);
+
 // --- Gestern: abgeschlossener Beispieltag mit Bestellungen ---
 const yesterday = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(
   new Date(Date.now() - 86_400_000)
@@ -142,7 +150,7 @@ const tInfo = db
   )
   .run(today, anna, p1, p2);
 const tDay = tInfo.lastInsertRowid;
-[pizzeria, asia, burger, salat].forEach((rid, i) => insertDayRestaurant.run(tDay, rid, i));
+[pizzeria, asia, burger, salat, imbiss].forEach((rid, i) => insertDayRestaurant.run(tDay, rid, i));
 insertVote.run(tDay, ben, pizzeria);
 insertVote.run(tDay, admin, pizzeria);
 insertVote.run(tDay, clara, asia);

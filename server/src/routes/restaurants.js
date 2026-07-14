@@ -9,6 +9,7 @@ function mapRestaurant(r) {
     description: r.description,
     phone: r.phone,
     website: r.website,
+    hasMenu: !!r.has_menu,
     isActive: !!r.is_active,
     menuCount: r.menu_count,
   };
@@ -70,9 +71,10 @@ function validateRestaurantInput(body) {
 restaurantsRouter.post('/', requireAdmin, (req, res) => {
   const v = validateRestaurantInput(req.body);
   if (v.error) return res.status(400).json({ message: v.error });
+  const hasMenu = req.body?.hasMenu === undefined ? 1 : req.body.hasMenu ? 1 : 0;
   const info = db
-    .prepare('INSERT INTO restaurants (name, description, phone, website) VALUES (?, ?, ?, ?)')
-    .run(v.name, v.description, v.phone, v.website);
+    .prepare('INSERT INTO restaurants (name, description, phone, website, has_menu) VALUES (?, ?, ?, ?, ?)')
+    .run(v.name, v.description, v.phone, v.website, hasMenu);
   const row = db.prepare('SELECT * FROM restaurants WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ restaurant: mapRestaurant(row) });
 });
@@ -83,9 +85,10 @@ restaurantsRouter.put('/:id', requireAdmin, (req, res) => {
   const v = validateRestaurantInput(req.body);
   if (v.error) return res.status(400).json({ message: v.error });
   const isActive = req.body?.isActive === undefined ? row.is_active : req.body.isActive ? 1 : 0;
+  const hasMenu = req.body?.hasMenu === undefined ? row.has_menu : req.body.hasMenu ? 1 : 0;
   db.prepare(
-    'UPDATE restaurants SET name = ?, description = ?, phone = ?, website = ?, is_active = ? WHERE id = ?'
-  ).run(v.name, v.description, v.phone, v.website, isActive, row.id);
+    'UPDATE restaurants SET name = ?, description = ?, phone = ?, website = ?, is_active = ?, has_menu = ? WHERE id = ?'
+  ).run(v.name, v.description, v.phone, v.website, isActive, hasMenu, row.id);
   res.json({
     restaurant: mapRestaurant(db.prepare('SELECT * FROM restaurants WHERE id = ?').get(row.id)),
   });

@@ -4,7 +4,7 @@ import { faCheck, faFloppyDisk, faPen, faPlus, faTrash, faXmark } from '@fortawe
 import { api } from '../../api.js';
 import { fmtPrice, parsePriceInput, priceInputValue } from '../../format.js';
 
-const EMPTY_RESTAURANT = { name: '', description: '', phone: '', website: '' };
+const EMPTY_RESTAURANT = { name: '', description: '', phone: '', website: '', hasMenu: true };
 const EMPTY_ITEM = { name: '', description: '', price: '' };
 
 export default function RestaurantsAdmin() {
@@ -66,7 +66,9 @@ export default function RestaurantsAdmin() {
                       {r.name}
                       {!r.isActive && <span className="badge badge-off">deaktiviert</span>}
                     </span>
-                    <span className="muted">{r.menuCount} Gerichte</span>
+                    <span className="muted">
+                      {r.hasMenu ? `${r.menuCount} Gerichte` : 'ohne Speisekarte'}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -103,6 +105,14 @@ export default function RestaurantsAdmin() {
                   value={createForm.website}
                   onChange={(e) => setCreateForm({ ...createForm, website: e.target.value })}
                 />
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={createForm.hasMenu}
+                  onChange={(e) => setCreateForm({ ...createForm, hasMenu: e.target.checked })}
+                />
+                Speisekarte vorhanden (Bestellungen über das Portal möglich)
               </label>
               <div>
                 <button className="btn btn-primary">
@@ -146,6 +156,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
       phone: d.restaurant.phone,
       website: d.restaurant.website,
       isActive: d.restaurant.isActive,
+      hasMenu: d.restaurant.hasMenu,
     });
   }
 
@@ -285,6 +296,14 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             />
             aktiv (steht für neue Tage zur Auswahl)
           </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.hasMenu}
+              onChange={(e) => setForm({ ...form, hasMenu: e.target.checked })}
+            />
+            Speisekarte vorhanden (Bestellungen über das Portal möglich)
+          </label>
           <div className="form-actions">
             <button className="btn btn-primary">
               <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
@@ -295,6 +314,12 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
 
       <div className="card">
         <h3>Speisekarte</h3>
+        {!data.restaurant.hasMenu && (
+          <div className="notice">
+            „Speisekarte vorhanden“ ist deaktiviert – Benutzer sehen den Hinweis, individuell zu
+            bestellen. Hier hinterlegte Gerichte werden nicht angezeigt, bleiben aber erhalten.
+          </div>
+        )}
         {data.items.length === 0 && <p className="muted">Noch keine Gerichte angelegt.</p>}
         {data.items.length > 0 && (
           <div className="table-scroll">
