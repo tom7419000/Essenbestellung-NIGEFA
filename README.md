@@ -73,6 +73,38 @@ Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 (sonst automatisch generiert und in `server/data/` abgelegt), `APP_TIMEZONE`
 (Standard `Europe/Berlin`).
 
+## Automatische Installation auf Ubuntu Server
+
+Das Skript [`install-essen-nigefa.sh`](install-essen-nigefa.sh) richtet die App auf
+einem Ubuntu Server vollautomatisch als Dienst ein – inklusive Node.js-Installation,
+Frontend-Build, Datenbank und **systemd-Dienst mit Autostart**. Es müssen keine Dienste
+manuell angelegt werden.
+
+```bash
+git clone https://github.com/tom7419000/Essenbestellung-NIGEFA.git
+cd Essenbestellung-NIGEFA
+sudo bash install-essen-nigefa.sh
+```
+
+Das Skript installiert nach `/opt/essen-nigefa`, legt den Systembenutzer `essen` an,
+erzeugt ein persistentes JWT-Secret unter `/etc/essen-nigefa/` und startet den Dienst
+`essen-nigefa`. Danach ist die App unter `http://<server-ip>:3001/` erreichbar.
+
+Anpassbar über Umgebungsvariablen, z. B. `sudo PORT=8080 APP_TIMEZONE=Europe/Vienna bash install-essen-nigefa.sh`
+(`INSTALL_DIR`, `SERVICE_USER`, `SERVICE_NAME`, `PORT`, `APP_TIMEZONE`, `NODE_MAJOR`,
+`RUN_SEED`).
+
+```bash
+systemctl status essen-nigefa       # Status ansehen
+journalctl -u essen-nigefa -f       # Logs verfolgen
+systemctl restart essen-nigefa      # neu starten
+sudo bash install-essen-nigefa.sh   # erneut ausführen = Update (Daten bleiben erhalten)
+sudo bash install-essen-nigefa.sh uninstall   # Dienst entfernen
+```
+
+Ein erneuter Aufruf aktualisiert die Anwendung, ohne Datenbank oder JWT-Secret zu
+überschreiben (Seed läuft nur, wenn noch keine Datenbank existiert).
+
 ## Dokumentation
 
 | Dokument | Inhalt |
@@ -101,7 +133,8 @@ Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 │       ├── components/      Layout (Navigation), Countdown
 │       └── pages/           Login, Heute, Meine Bestellungen, Organisation,
 │                            admin/ (Tagesplanung, Restaurants, Benutzer)
-└── docs/                    Konzepte, API-Referenz, Screenshots
+├── docs/                    Konzepte, API-Referenz, Screenshots
+└── install-essen-nigefa.sh  Automatische Ubuntu-Installation als systemd-Dienst
 ```
 
 ## Wichtige Implementierungsdetails
