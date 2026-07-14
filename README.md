@@ -105,12 +105,26 @@ Anpassbar über Umgebungsvariablen, z. B. `sudo PORT=8080 APP_TIMEZONE=Europe/Vi
 systemctl status essen-nigefa       # Status ansehen
 journalctl -u essen-nigefa -f       # Logs verfolgen
 systemctl restart essen-nigefa      # neu starten
-sudo bash install-essen-nigefa.sh   # erneut ausführen = Update (Daten bleiben erhalten)
 sudo bash install-essen-nigefa.sh uninstall   # Dienst entfernen
 ```
 
-Ein erneuter Aufruf aktualisiert die Anwendung, ohne Datenbank oder JWT-Secret zu
-überschreiben (Seed läuft nur, wenn noch keine Datenbank existiert).
+**Updates:** Für bestehende Installationen gibt es
+[`update-essen-nigefa.sh`](update-essen-nigefa.sh) – im aktualisierten
+Repository ausführen:
+
+```bash
+git pull                            # oder frisch klonen
+sudo bash update-essen-nigefa.sh
+```
+
+Das Skript legt **vor dem Update automatisch ein Backup** an (Datenbank,
+Branding-Dateien, JWT-Secret, Dienst-Konfiguration – ablegt unter
+`/opt/essen-nigefa/backups/`), aktualisiert den Code, baut das Frontend neu
+und führt **additive Datenbankmigrationen** aus (neue Spalten mit sinnvollen
+Standardwerten, keine destruktiven Änderungen). Restaurants samt Speisekarten,
+Benutzerkonten, Bestellhistorie und Branding-Einstellungen bleiben erhalten.
+Am Ende zeigt eine Zusammenfassung Version, Migrationen, Backup-Pfad und den
+Befehl zur Wiederherstellung im Fehlerfall.
 
 ## Dokumentation
 
@@ -143,7 +157,8 @@ Ein erneuter Aufruf aktualisiert die Anwendung, ohne Datenbank oder JWT-Secret z
 │       └── pages/           Login, Heute, Meine Bestellungen, Organisation,
 │                            admin/ (Tagesplanung, Restaurants, Benutzer)
 ├── docs/                    Konzepte, API-Referenz, Screenshots
-└── install-essen-nigefa.sh  Automatische Ubuntu-Installation als systemd-Dienst
+├── install-essen-nigefa.sh  Automatische Ubuntu-Installation als systemd-Dienst
+└── update-essen-nigefa.sh   Update bestehender Installationen (mit Backup + Migrationen)
 ```
 
 ## Wichtige Implementierungsdetails

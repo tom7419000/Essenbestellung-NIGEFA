@@ -122,6 +122,19 @@ jetzt >= phase2_deadline                    -> status = closed   (abgeschlossen)
 * Ändert ein Admin die Deadlines nachträglich, wird der Status neu berechnet –
   eine Verlängerung von Phase 1 öffnet die Abstimmung also wieder.
 
+## Migrationen
+
+Schema-Änderungen laufen über ein additives Migrationssystem in
+[`server/src/db.js`](../server/src/db.js): Der Stand wird in `PRAGMA
+user_version` verfolgt, Migrationen ergänzen ausschließlich neue Spalten mit
+sinnvollen Standardwerten (nicht-destruktiv) und laufen automatisch beim
+Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
+
+| Version | Inhalt |
+| --- | --- |
+| 1 | `restaurants.has_menu` (Restaurants ohne Speisekarte; Bestandsdaten: „ja“, wenn Gerichte hinterlegt sind) |
+| 2 | `menu_items.category` und `menu_items.allergens` (Kategorien & Allergene, CSV-/URL-Import) |
+
 ## Zeitzonen
 
 Alle Zeitstempel werden als **ISO-Strings in UTC** gespeichert. Das Frontend rechnet zur
