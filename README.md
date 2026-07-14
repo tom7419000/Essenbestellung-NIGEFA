@@ -120,6 +120,7 @@ Ein erneuter Aufruf aktualisiert die Anwendung, ohne Datenbank oder JWT-Secret z
 | [docs/seitenkonzept.md](docs/seitenkonzept.md) | Alle Seiten, Abläufe und Berechtigungen |
 | [docs/api-endpunkte.md](docs/api-endpunkte.md) | REST-API-Referenz mit Beispielen |
 | [docs/sso-entra-id.md](docs/sso-entra-id.md) | Single Sign-On mit Microsoft Entra ID einrichten (optional) |
+| [docs/speisekarten-import.md](docs/speisekarten-import.md) | Speisekarten importieren: CSV, Lieferando, Gastromia |
 
 ## Projektstruktur
 

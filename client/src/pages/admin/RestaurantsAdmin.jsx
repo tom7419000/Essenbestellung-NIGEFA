@@ -686,11 +686,12 @@ function UrlImportCard({ restaurantId, onDone }) {
 
   return (
     <div className="card">
-      <h3>Von Lieferando importieren</h3>
+      <h3>Von Lieferando oder Gastromia importieren</h3>
       <p className="muted">
-        URL der Restaurantseite eingeben (z. B.{' '}
-        <code>https://www.lieferando.de/speisekarte/…</code>). Die Speisekarte wird ausgelesen
-        und vor dem Import als Vorschau angezeigt.
+        URL der Restaurantseite eingeben – unterstützt werden Lieferando (z. B.{' '}
+        <code>https://www.lieferando.de/speisekarte/…</code>) und Gastromia-basierte
+        WebOrder-Seiten (weborder.gastromia.de bzw. eigene Restaurant-Domain). Die Speisekarte
+        wird ausgelesen und vor dem Import als Vorschau angezeigt.
       </p>
       {error && <div className="alert">{error}</div>}
       {result && (
@@ -706,7 +707,7 @@ function UrlImportCard({ restaurantId, onDone }) {
         <input
           style={{ flex: 1, minWidth: '240px' }}
           type="url"
-          placeholder="https://www.lieferando.de/speisekarte/…"
+          placeholder="https://www.lieferando.de/speisekarte/… oder Gastromia-Bestellseite"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           required

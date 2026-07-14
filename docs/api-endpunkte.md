@@ -59,7 +59,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/restaurants/:id/menu` | 🔑 | Gericht anlegen. Body: `{name, category, description, allergens, priceCents}` |
 | POST | `/restaurants/:id/menu/import-csv` | 🔑 | CSV-Import. Body: `{csv, mode: "append"\|"replace"}` → Statistik + Fehlzeilen |
 | POST | `/restaurants/:id/menu/import-items` | 🔑 | Geprüfte Gerichte aus der Import-Vorschau übernehmen. Body: `{mode, items[]}` |
-| POST | `/menu-import/preview` | 🔑 | Speisekarte einer externen Seite auslesen (Lieferando). Body: `{url}` → `{provider, restaurantName, items[], warnings[]}` (noch ohne Speichern) |
+| POST | `/menu-import/preview` | 🔑 | Speisekarte einer externen Seite auslesen (Lieferando oder Gastromia, siehe [speisekarten-import.md](speisekarten-import.md)). Body: `{url}` → `{provider, restaurantName, items[], warnings[]}` (noch ohne Speichern) |
 | PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`) |
 | DELETE | `/menu-items/:id` | 🔑 | Gericht löschen; bereits bestellte Gerichte werden deaktiviert |
 | GET | `/settings` | 🔑 | Standard-Abstimmungszeiten |

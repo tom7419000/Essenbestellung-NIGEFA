@@ -1,5 +1,6 @@
-import { ImportError, assertPublicHttpUrl } from './util.js';
+import { ImportError, assertPublicHttpUrl, fetchText } from './util.js';
 import { importLieferando, isLieferandoUrl } from './lieferando.js';
+import { importGastromia, isGastromiaPage } from './gastromia.js';
 
 export { ImportError };
 
@@ -12,7 +13,16 @@ export async function importMenuFromUrl(rawUrl) {
     return { provider: 'lieferando', ...(await importLieferando(u)) };
   }
 
+  // Andere Domains: Seite laden und auf Gastromia-Merkmale prüfen
+  // ("Powered by GASTROMIA" bzw. weborder.gastromia.de).
+  const html = await fetchText(u.toString(), {
+    headers: { accept: 'text/html,application/xhtml+xml' },
+  });
+  if (isGastromiaPage(u, html)) {
+    return { provider: 'gastromia', ...(await importGastromia(u, html)) };
+  }
+
   throw new ImportError(
-    'Diese URL wird nicht unterstützt. Unterstützt werden Lieferando-Restaurantseiten (z. B. https://www.lieferando.de/speisekarte/<restaurant>).'
+    'Diese URL wird nicht unterstützt. Unterstützt werden Lieferando-Restaurantseiten und Gastromia-basierte WebOrder-Seiten.'
   );
 }
