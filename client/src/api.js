@@ -35,3 +35,23 @@ export async function api(path, { method = 'GET', body } = {}) {
   }
   return data;
 }
+
+// Datei-Upload (z. B. Logo/Favicon): sendet die Datei als Roh-Body mit ihrem Content-Type.
+export async function apiUpload(path, file) {
+  const headers = { 'Content-Type': file.type || 'application/octet-stream' };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`/api${path}`, { method: 'POST', headers, body: file });
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // leere Antwort
+  }
+  if (!res.ok) {
+    const err = new Error(data?.message || `Fehler ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}

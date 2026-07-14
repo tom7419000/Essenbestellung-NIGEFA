@@ -1,21 +1,32 @@
 :root {
+  /* Branding-Farben – werden vom BrandingContext (Admin → Design) überschrieben */
+  --color-primary: #e8590c;
+  --color-secondary: #1971c2;
+  --color-accent: #2f9e44;
+  --on-primary: #ffffff;
+  --on-accent: #ffffff;
+
+  /* Grundflächen */
   --bg: #f5f6f8;
   --card: #ffffff;
   --text: #212934;
   --muted: #66707d;
   --border: #e4e7ec;
-  --accent: #e8590c;
-  --accent-dark: #d9480f;
-  --accent-soft: #fff1e7;
-  --green: #2f9e44;
-  --green-soft: #ebfbee;
-  --blue: #1971c2;
-  --blue-soft: #e7f5ff;
-  --amber: #b35c00;
-  --amber-soft: #fff4e0;
-  --red: #e03131;
-  --red-soft: #fff5f5;
   --gray-soft: #f1f3f5;
+
+  /* Abgeleitete Töne: passen sich Branding-Farben und Theme automatisch an */
+  --accent: var(--color-primary);
+  --accent-dark: color-mix(in srgb, var(--color-primary) 82%, black);
+  --accent-soft: color-mix(in srgb, var(--color-primary) 12%, var(--card));
+  --blue: var(--color-secondary);
+  --blue-soft: color-mix(in srgb, var(--color-secondary) 12%, var(--card));
+  --green: var(--color-accent);
+  --green-soft: color-mix(in srgb, var(--color-accent) 12%, var(--card));
+  --amber: #b35c00;
+  --amber-soft: color-mix(in srgb, #e8940c 15%, var(--card));
+  --red: #e03131;
+  --red-soft: color-mix(in srgb, var(--red) 10%, var(--card));
+
   --radius: 12px;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
 }
@@ -63,8 +74,9 @@ a { color: var(--accent-dark); }
   flex-wrap: wrap;
 }
 
-.brand { font-weight: 700; font-size: 1.05rem; white-space: nowrap; }
+.brand { font-weight: 700; font-size: 1.05rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem; }
 .brand-emoji { margin-right: 0.15rem; }
+.brand-logo { height: 30px; max-width: 140px; object-fit: contain; display: block; }
 
 .nav { display: flex; gap: 0.25rem; flex-wrap: wrap; flex: 1; }
 
@@ -156,7 +168,7 @@ a { color: var(--accent-dark); }
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-primary);
 }
 .btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
 
@@ -185,7 +197,7 @@ input, select, textarea {
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   color: var(--text);
   min-width: 0;
 }
@@ -240,7 +252,7 @@ input:focus, select:focus, textarea:focus {
 .alert {
   background: var(--red-soft);
   color: var(--red);
-  border: 1px solid #ffc9c9;
+  border: 1px solid color-mix(in srgb, var(--red) 30%, var(--card));
   border-radius: 8px;
   padding: 0.6rem 0.9rem;
   margin: 0.5rem 0;
@@ -339,8 +351,8 @@ select.status-select { border-radius: 999px; font-size: 0.85rem; font-weight: 60
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: linear-gradient(135deg, var(--accent-soft), #fff);
-  border-color: #ffd8bf;
+  background: linear-gradient(135deg, var(--accent-soft), var(--card));
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--card));
 }
 
 .winner-banner h2 { margin: 0 0 0.2rem; }
@@ -447,7 +459,46 @@ td.actions .btn { margin-left: 0.3rem; }
 
 .login-card label { text-align: left; }
 .login-brand { font-size: 2.6rem; }
+.login-logo { max-height: 64px; max-width: 220px; object-fit: contain; align-self: center; }
 .login-card h1 { margin: 0; }
+
+/* ---------- Admin: Design & Branding ---------- */
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.color-field { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.color-inputs { display: flex; gap: 0.5rem; align-items: center; }
+
+.color-inputs input[type='color'] {
+  width: 3rem;
+  height: 2.4rem;
+  padding: 0.15rem;
+  cursor: pointer;
+}
+
+.color-hex { width: 6.5rem; font-variant-numeric: tabular-nums; }
+
+.upload-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+
+.upload-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--gray-soft);
+  padding: 0.75rem;
+  min-width: 150px;
+  min-height: 64px;
+}
+
+.upload-preview-logo img { max-height: 56px; max-width: 200px; object-fit: contain; }
+.upload-preview-favicon img { width: 32px; height: 32px; object-fit: contain; }
 
 /* ---------- Responsive ---------- */
 

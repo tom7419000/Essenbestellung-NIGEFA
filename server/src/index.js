@@ -10,6 +10,7 @@ import { restaurantsRouter, menuItemsRouter } from './routes/restaurants.js';
 import { daysRouter, ordersRouter } from './routes/days.js';
 import myRouter from './routes/my.js';
 import settingsRouter from './routes/settings.js';
+import brandingRouter, { faviconAlias } from './routes/branding.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -31,8 +32,12 @@ app.use('/api/days', daysRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/my', myRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/branding', brandingRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Nicht gefunden.' }));
+
+// Hochgeladenes Favicon auch unter dem klassischen Pfad bereitstellen.
+app.get('/favicon.ico', faviconAlias);
 
 // Produktionsmodus: gebautes Frontend aus client/dist ausliefern.
 const dist = path.resolve(__dirname, '../../client/dist');
@@ -49,6 +54,9 @@ if (fs.existsSync(dist)) {
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   if (err?.type === 'entity.parse.failed') {
     return res.status(400).json({ message: 'Ungültige Anfrage.' });
+  }
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Die Datei ist zu groß.' });
   }
   console.error(err);
   res.status(500).json({ message: 'Interner Serverfehler.' });

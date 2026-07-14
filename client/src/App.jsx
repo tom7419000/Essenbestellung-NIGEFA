@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
+import { BrandingProvider } from './branding/BrandingContext.jsx';
 import Layout from './components/Layout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import TodayPage from './pages/TodayPage.jsx';
@@ -8,6 +9,7 @@ import OrganizerPage from './pages/OrganizerPage.jsx';
 import UsersAdmin from './pages/admin/UsersAdmin.jsx';
 import RestaurantsAdmin from './pages/admin/RestaurantsAdmin.jsx';
 import DaysAdmin from './pages/admin/DaysAdmin.jsx';
+import DesignAdmin from './pages/admin/DesignAdmin.jsx';
 
 function Protected({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -19,8 +21,9 @@ function Protected({ children, adminOnly = false }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrandingProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -57,10 +60,19 @@ export default function App() {
                 </Protected>
               }
             />
+            <Route
+              path="/admin/design"
+              element={
+                <Protected adminOnly>
+                  <DesignAdmin />
+                </Protected>
+              }
+            />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </BrandingProvider>
   );
 }

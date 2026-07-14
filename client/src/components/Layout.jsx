@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import { useBranding } from '../branding/BrandingContext.jsx';
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
   const [showOrganizerLink, setShowOrganizerLink] = useState(user.role === 'admin');
 
@@ -23,7 +25,12 @@ export default function Layout() {
       <header className="topbar">
         <div className="topbar-inner">
           <span className="brand">
-            <span className="brand-emoji">🍽️</span> Essensbestellung
+            {branding.logoUrl ? (
+              <img className="brand-logo" src={branding.logoUrl} alt="Logo" />
+            ) : (
+              <span className="brand-emoji">🍽️</span>
+            )}{' '}
+            Essensbestellung
           </span>
           <nav className="nav">
             <NavLink to="/" end>
@@ -36,6 +43,7 @@ export default function Layout() {
                 <NavLink to="/admin/tage">Tagesplanung</NavLink>
                 <NavLink to="/admin/restaurants">Restaurants</NavLink>
                 <NavLink to="/admin/benutzer">Benutzer</NavLink>
+                <NavLink to="/admin/design">Design</NavLink>
               </>
             )}
           </nav>
