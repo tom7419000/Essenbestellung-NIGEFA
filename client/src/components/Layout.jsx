@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faBars,
   faCalendarDays,
   faChevronDown,
   faClipboardList,
@@ -14,6 +15,7 @@ import {
   faSun,
   faUsers,
   faUtensils,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -35,6 +37,8 @@ export default function Layout() {
   const [showOrganizerLink, setShowOrganizerLink] = useState(user.role === 'admin');
   const [theme, setTheme] = useState(currentTheme());
   const [adminOpen, setAdminOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
   const adminRef = useRef(null);
 
   useEffect(() => {
@@ -47,11 +51,13 @@ export default function Layout() {
       .catch(() => {});
   }, [user]);
 
-  // Dropdown schließt bei Navigation, Klick außerhalb und Escape.
+  // Menüs schließen bei Navigation.
   useEffect(() => {
     setAdminOpen(false);
+    setMenuOpen(false);
   }, [location.pathname]);
 
+  // Desktop-Dropdown: Klick außerhalb und Escape schließen.
   useEffect(() => {
     if (!adminOpen) return undefined;
     const onPointer = (e) => {
@@ -68,6 +74,20 @@ export default function Layout() {
     };
   }, [adminOpen]);
 
+  // Mobil-Menü: Escape schließt, Hintergrund scrollt nicht mit.
+  useEffect(() => {
+    document.body.classList.toggle('no-scroll', menuOpen);
+    if (!menuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('no-scroll');
+    };
+  }, [menuOpen]);
+
   const mainLinks = [
     { to: '/', icon: faUtensils, label: 'Heute', end: true },
     { to: '/meine-bestellungen', icon: faReceipt, label: 'Meine Bestellungen' },
@@ -75,6 +95,11 @@ export default function Layout() {
       ? [{ to: '/organisation', icon: faClipboardList, label: 'Organisation' }]
       : []),
   ];
+
+  function openMobileMenu() {
+    setMobileAdminOpen(location.pathname.startsWith('/admin'));
+    setMenuOpen(true);
+  }
 
   return (
     <div className="app">
@@ -132,7 +157,7 @@ export default function Layout() {
               {user.role === 'admin' && <span className="badge badge-admin">Admin</span>}
             </span>
             <button
-              className="btn btn-ghost"
+              className="btn btn-ghost logout-btn"
               onClick={() => {
                 logout();
                 navigate('/login');
@@ -140,9 +165,84 @@ export default function Layout() {
             >
               <FontAwesomeIcon icon={faRightFromBracket} /> Abmelden
             </button>
+            <button
+              className="btn btn-ghost nav-toggle"
+              aria-label="Menü öffnen"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              onClick={openMobileMenu}
+            >
+              <FontAwesomeIcon icon={faBars} />
+            </button>
           </div>
         </div>
       </header>
+
+      {menuOpen && (
+        <>
+          <div className="offcanvas-backdrop" onClick={() => setMenuOpen(false)} />
+          <aside id="mobile-menu" className="offcanvas" role="dialog" aria-label="Navigation">
+            <div className="offcanvas-head">
+              <span className="user-name">
+                {user.displayName}
+                {user.role === 'admin' && <span className="badge badge-admin">Admin</span>}
+              </span>
+              <button
+                className="btn btn-ghost"
+                aria-label="Menü schließen"
+                onClick={() => setMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+            <nav className="offcanvas-nav">
+              {mainLinks.map((l) => (
+                <NavLink key={l.to} to={l.to} end={l.end} onClick={() => setMenuOpen(false)}>
+                  <FontAwesomeIcon icon={l.icon} fixedWidth /> {l.label}
+                </NavLink>
+              ))}
+              {user.role === 'admin' && (
+                <div className="offcanvas-group">
+                  <button
+                    type="button"
+                    className="offcanvas-group-toggle"
+                    aria-expanded={mobileAdminOpen}
+                    onClick={() => setMobileAdminOpen((o) => !o)}
+                  >
+                    <FontAwesomeIcon icon={faScrewdriverWrench} fixedWidth /> Admin{' '}
+                    <FontAwesomeIcon
+                      icon={faChevronDown}
+                      className={`nav-dropdown-chevron${mobileAdminOpen ? ' rotated' : ''}`}
+                    />
+                  </button>
+                  {mobileAdminOpen && (
+                    <div className="offcanvas-sublinks">
+                      {ADMIN_LINKS.map((l) => (
+                        <NavLink key={l.to} to={l.to} onClick={() => setMenuOpen(false)}>
+                          <FontAwesomeIcon icon={l.icon} fixedWidth /> {l.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+            <div className="offcanvas-foot">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                  navigate('/login');
+                }}
+              >
+                <FontAwesomeIcon icon={faRightFromBracket} /> Abmelden
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+
       <main className="content">
         <Outlet />
       </main>
