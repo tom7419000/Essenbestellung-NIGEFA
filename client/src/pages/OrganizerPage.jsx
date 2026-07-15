@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import {
   DAY_STATUS,
   ORDER_STATUS,
+  ORGANIZER_SOURCE_LABELS,
   fmtDateLong,
   fmtDateShort,
   fmtPrice,
@@ -113,6 +114,20 @@ export default function OrganizerPage() {
               </h2>
               <span className={`badge status-${detail.day.status}`}>{DAY_STATUS[detail.day.status]}</span>
             </div>
+            <p className="muted">
+              {detail.organizerName ? (
+                <>
+                  Organisation: <b>{detail.organizerName}</b>{' '}
+                  <span className={`badge organizer-${detail.day.organizerSource || 'manuell'}`}>
+                    {ORGANIZER_SOURCE_LABELS[detail.day.organizerSource] || 'zugewiesen'}
+                  </span>
+                </>
+              ) : detail.day.organizerMode !== 'manuell' ? (
+                'Organisation: wird noch bestimmt (freiwillige Meldung bzw. Zufallsauswahl).'
+              ) : (
+                'Organisation: nicht festgelegt.'
+              )}
+            </p>
             {detail.winner && !detail.winner.hasMenu && (
               <div className="notice">
                 Für dieses Restaurant ist keine Speisekarte hinterlegt – Bestellungen werden

@@ -42,6 +42,22 @@ export const DAY_STATUS = {
   closed: 'Abgeschlossen',
 };
 
+export const ORGANIZER_MODES = [
+  { value: 'manuell', label: 'Manuell (Admin legt fest)' },
+  { value: 'freiwillig', label: 'Freiwillige Meldung (mit Zufalls-Fallback)' },
+  { value: 'zufaellig', label: 'Zufällig aus den Mitbestellern' },
+];
+
+export function organizerModeLabel(value) {
+  return ORGANIZER_MODES.find((m) => m.value === value)?.label || value;
+}
+
+export const ORGANIZER_SOURCE_LABELS = {
+  manuell: 'zugewiesen',
+  freiwillig: 'freiwillig gemeldet',
+  zufaellig: 'zufällig ausgewählt',
+};
+
 export function parsePriceInput(text) {
   const trimmed = String(text || '').trim();
   if (!trimmed) return null;

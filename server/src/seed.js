@@ -112,8 +112,8 @@ const yesterday = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(
 db.prepare('DELETE FROM days WHERE date = ?').run(yesterday);
 const yInfo = db
   .prepare(
-    `INSERT INTO days (date, organizer_id, phase1_deadline, phase2_deadline, status, winning_restaurant_id)
-     VALUES (?, ?, ?, ?, 'closed', ?)`
+    `INSERT INTO days (date, organizer_id, organizer_mode, organizer_source, phase1_deadline, phase2_deadline, status, winning_restaurant_id)
+     VALUES (?, ?, 'manuell', 'manuell', ?, ?, 'closed', ?)`
   )
   .run(yesterday, ben, zonedIso(yesterday, '10:30'), zonedIso(yesterday, '11:45'), burger);
 const yDay = yInfo.lastInsertRowid;
@@ -147,7 +147,8 @@ if (Date.parse(p1) < Date.now() + 5 * 60_000) {
 }
 const tInfo = db
   .prepare(
-    'INSERT INTO days (date, organizer_id, phase1_deadline, phase2_deadline) VALUES (?, ?, ?, ?)'
+    `INSERT INTO days (date, organizer_id, organizer_mode, organizer_source, phase1_deadline, phase2_deadline)
+     VALUES (?, ?, 'manuell', 'manuell', ?, ?)`
   )
   .run(today, anna, p1, p2);
 const tDay = tInfo.lastInsertRowid;

@@ -1,4 +1,4 @@
-import { db } from './db.js';
+import { db, getSetting } from './db.js';
 
 // Gewinner der Phase 1: meiste Stimmen; bei Gleichstand gewinnt die
 // zuerst gelistete Option des Tages. Ohne Stimmen fällt die Wahl auf
@@ -43,9 +43,37 @@ export function ensureCurrent(day) {
       winner,
       day.id
     );
-    return db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
+    day = db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
   }
-  return day;
+  return maybeAssignOrganizer(day);
+}
+
+// Automatische Organisator-Zuweisung:
+// - Modus "zufaellig": zum konfigurierten Zeitpunkt wird zufällig eine Person
+//   aus den Mitbestellern des Tages bestimmt.
+// - Modus "freiwillig": gleiche Logik als Fallback – hat sich bis zum
+//   Zeitpunkt niemand freiwillig gemeldet, wird zufällig zugewiesen.
+// Zeitpunkt: organizer_assign_minutes Minuten vor dem Bestellschluss
+// (0 = genau zum Bestellschluss). Läuft auch nach Tagesabschluss nach,
+// falls der Server zum Stichzeitpunkt nicht lief.
+function maybeAssignOrganizer(day) {
+  if (!day || day.organizer_id != null) return day;
+  if (day.organizer_mode !== 'freiwillig' && day.organizer_mode !== 'zufaellig') return day;
+  if (day.status === 'phase1') return day;
+
+  const minutes = Number(getSetting('organizer_assign_minutes', '0')) || 0;
+  if (Date.now() < Date.parse(day.phase2_deadline) - minutes * 60_000) return day;
+
+  const orderers = db
+    .prepare("SELECT user_id FROM orders WHERE day_id = ? AND status != 'storniert'")
+    .all(day.id);
+  if (orderers.length === 0) return day;
+
+  const pick = orderers[Math.floor(Math.random() * orderers.length)].user_id;
+  db.prepare(
+    "UPDATE days SET organizer_id = ?, organizer_source = 'zufaellig' WHERE id = ? AND organizer_id IS NULL"
+  ).run(pick, day.id);
+  return db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
 }
 
 // Wird periodisch und vor Listen-Abfragen aufgerufen, damit Phasenwechsel

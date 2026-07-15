@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS days (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
   date                  TEXT NOT NULL UNIQUE,
   organizer_id          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  organizer_mode        TEXT NOT NULL DEFAULT 'manuell',
+  organizer_source      TEXT,
   phase1_deadline       TEXT NOT NULL,
   phase2_deadline       TEXT NOT NULL,
   status                TEXT NOT NULL DEFAULT 'phase1' CHECK (status IN ('phase1', 'phase2', 'closed')),
@@ -132,6 +134,20 @@ const migrations = [
       }
     },
   },
+  {
+    version: 3,
+    name: 'days.organizer_mode/organizer_source (Organisator-Modi)',
+    up() {
+      if (!columnExists('days', 'organizer_mode')) {
+        db.exec("ALTER TABLE days ADD COLUMN organizer_mode TEXT NOT NULL DEFAULT 'manuell'");
+      }
+      if (!columnExists('days', 'organizer_source')) {
+        db.exec('ALTER TABLE days ADD COLUMN organizer_source TEXT');
+        // Bestehende Zuweisungen stammen aus der manuellen Tagesplanung.
+        db.exec("UPDATE days SET organizer_source = 'manuell' WHERE organizer_id IS NOT NULL");
+      }
+    },
+  },
 ];
 
 export function runMigrations({ log = () => {} } = {}) {
@@ -156,6 +172,8 @@ export function initDb() {
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   insertSetting.run('default_phase1_time', '10:30');
   insertSetting.run('default_phase2_time', '11:45');
+  insertSetting.run('default_organizer_mode', 'manuell');
+  insertSetting.run('organizer_assign_minutes', '0');
 }
 
 export function getSetting(key, fallback = null) {

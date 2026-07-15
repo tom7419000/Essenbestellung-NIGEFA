@@ -10,12 +10,16 @@ function getDay(id) {
   return db.prepare('SELECT * FROM days WHERE id = ?').get(id);
 }
 
+export const ORGANIZER_MODES = ['manuell', 'freiwillig', 'zufaellig'];
+
 function mapDay(d) {
   return {
     id: d.id,
     date: d.date,
     status: d.status,
     organizerId: d.organizer_id,
+    organizerMode: d.organizer_mode,
+    organizerSource: d.organizer_source,
     phase1Deadline: d.phase1_deadline,
     phase2Deadline: d.phase2_deadline,
     winningRestaurantId: d.winning_restaurant_id,
@@ -208,6 +212,52 @@ daysRouter.delete('/:id/order', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Freiwillige Organisator-Meldung ----------
+
+daysRouter.post('/:id/volunteer', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.organizer_mode !== 'freiwillig') {
+    return res.status(409).json({ message: 'Für diesen Tag ist keine freiwillige Meldung vorgesehen.' });
+  }
+  if (day.status === 'closed') {
+    return res.status(409).json({ message: 'Dieser Tag ist bereits abgeschlossen.' });
+  }
+  if (day.organizer_id != null) {
+    return res.status(409).json({ message: 'Es ist bereits jemand als Organisator eingetragen.' });
+  }
+  const hasOrder = db
+    .prepare("SELECT 1 FROM orders WHERE day_id = ? AND user_id = ? AND status != 'storniert'")
+    .get(day.id, req.user.id);
+  if (!hasOrder) {
+    return res.status(409).json({ message: 'Bitte zuerst bestellen – nur Mitbesteller können organisieren.' });
+  }
+  const info = db
+    .prepare(
+      "UPDATE days SET organizer_id = ?, organizer_source = 'freiwillig' WHERE id = ? AND organizer_id IS NULL"
+    )
+    .run(req.user.id, day.id);
+  if (info.changes === 0) {
+    return res.status(409).json({ message: 'Jemand anderes war schneller – der Platz ist bereits vergeben.' });
+  }
+  res.json({ ok: true });
+});
+
+daysRouter.delete('/:id/volunteer', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.organizer_id !== req.user.id || day.organizer_source !== 'freiwillig') {
+    return res.status(409).json({ message: 'Du bist nicht als freiwilliger Organisator eingetragen.' });
+  }
+  if (day.status === 'closed') {
+    return res.status(409).json({ message: 'Dieser Tag ist bereits abgeschlossen.' });
+  }
+  db.prepare('UPDATE days SET organizer_id = NULL, organizer_source = NULL WHERE id = ?').run(day.id);
+  res.json({ ok: true });
+});
+
 // ---------- Organisator / Admin ----------
 
 daysRouter.get('/:id/full', (req, res) => {
@@ -323,8 +373,12 @@ function validateDayInput(body, existingId = null) {
     .get(...ids).n;
   if (known !== ids.length) return { error: 'Unbekanntes Restaurant in der Auswahl.' };
 
+  const organizerMode = ORGANIZER_MODES.includes(body?.organizerMode)
+    ? body.organizerMode
+    : 'manuell';
+
   let organizerId = body?.organizerId ?? null;
-  if (organizerId === '' || organizerId === 0) organizerId = null;
+  if (organizerId === '' || organizerId === 0 || organizerMode !== 'manuell') organizerId = null;
   if (organizerId != null) {
     const u = db.prepare('SELECT id FROM users WHERE id = ? AND is_active = 1').get(organizerId);
     if (!u) return { error: 'Unbekannter Organisator.' };
@@ -334,6 +388,7 @@ function validateDayInput(body, existingId = null) {
   return {
     date,
     organizerId,
+    organizerMode,
     p1Iso: new Date(p1).toISOString(),
     p2Iso: new Date(p2).toISOString(),
     restaurantIds: ids,
@@ -343,9 +398,17 @@ function validateDayInput(body, existingId = null) {
 const insertDayTx = db.transaction((v) => {
   const info = db
     .prepare(
-      'INSERT INTO days (date, organizer_id, phase1_deadline, phase2_deadline) VALUES (?, ?, ?, ?)'
+      `INSERT INTO days (date, organizer_id, organizer_mode, organizer_source, phase1_deadline, phase2_deadline)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .run(v.date, v.organizerId, v.p1Iso, v.p2Iso);
+    .run(
+      v.date,
+      v.organizerId,
+      v.organizerMode,
+      v.organizerId != null ? 'manuell' : null,
+      v.p1Iso,
+      v.p2Iso
+    );
   const dayId = info.lastInsertRowid;
   const insert = db.prepare(
     'INSERT INTO day_restaurants (day_id, restaurant_id, position) VALUES (?, ?, ?)'
@@ -362,13 +425,27 @@ daysRouter.post('/', requireAdmin, (req, res) => {
   res.status(201).json({ day: mapDay(day) });
 });
 
-const updateDayTx = db.transaction((dayId, v) => {
+const updateDayTx = db.transaction((day, v) => {
+  // Organisator je nach Modus: manuell aus dem Formular; bei automatischen
+  // Modi bleibt eine bereits erfolgte (freiwillige/zufällige) Zuweisung
+  // erhalten, solange der Modus unverändert ist.
+  let organizerId = null;
+  let organizerSource = null;
+  if (v.organizerMode === 'manuell') {
+    organizerId = v.organizerId;
+    organizerSource = v.organizerId != null ? 'manuell' : null;
+  } else if (day.organizer_mode === v.organizerMode && day.organizer_source !== 'manuell') {
+    organizerId = day.organizer_id;
+    organizerSource = day.organizer_id != null ? day.organizer_source : null;
+  }
+
   // Status und Gewinner werden anschließend aus den (neuen) Deadlines abgeleitet.
   db.prepare(
-    `UPDATE days SET date = ?, organizer_id = ?, phase1_deadline = ?, phase2_deadline = ?,
-       status = 'phase1', winning_restaurant_id = NULL
+    `UPDATE days SET date = ?, organizer_id = ?, organizer_mode = ?, organizer_source = ?,
+       phase1_deadline = ?, phase2_deadline = ?, status = 'phase1', winning_restaurant_id = NULL
      WHERE id = ?`
-  ).run(v.date, v.organizerId, v.p1Iso, v.p2Iso, dayId);
+  ).run(v.date, organizerId, v.organizerMode, organizerSource, v.p1Iso, v.p2Iso, day.id);
+  const dayId = day.id;
   db.prepare('DELETE FROM day_restaurants WHERE day_id = ?').run(dayId);
   const insert = db.prepare(
     'INSERT INTO day_restaurants (day_id, restaurant_id, position) VALUES (?, ?, ?)'
@@ -386,7 +463,7 @@ daysRouter.put('/:id', requireAdmin, (req, res) => {
   if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
   const v = validateDayInput(req.body, day.id);
   if (v.error) return res.status(400).json({ message: v.error });
-  updateDayTx(day.id, v);
+  updateDayTx(day, v);
   const updated = ensureCurrent(getDay(day.id));
   res.json({ day: mapDay(updated) });
 });

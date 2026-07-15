@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCircleCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCircleCheck, faHandPointUp, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 import Countdown from '../components/Countdown.jsx';
-import { DAY_STATUS, fmtDateLong, fmtPrice, fmtTime, statusLabel } from '../format.js';
+import {
+  DAY_STATUS,
+  ORGANIZER_SOURCE_LABELS,
+  fmtDateLong,
+  fmtPrice,
+  fmtTime,
+  statusLabel,
+} from '../format.js';
 
 export default function TodayPage() {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -56,11 +65,19 @@ export default function TodayPage() {
             {data.organizerName ? (
               <>
                 Organisation heute: <b>{data.organizerName}</b>
+                {day.organizerSource && day.organizerSource !== 'manuell' && (
+                  <> ({ORGANIZER_SOURCE_LABELS[day.organizerSource]})</>
+                )}
               </>
+            ) : day.organizerMode === 'freiwillig' ? (
+              'Organisation heute: noch offen – Freiwillige gesucht!'
+            ) : day.organizerMode === 'zufaellig' ? (
+              'Organisation heute: wird zufällig aus den Mitbestellern bestimmt.'
             ) : (
               'Für heute ist noch kein Organisator festgelegt.'
             )}
           </p>
+          <VolunteerControls data={data} user={user} reload={load} />
         </div>
         <div className="page-head-side">
           <span className={`badge status-${day.status}`}>{DAY_STATUS[day.status]}</span>
@@ -283,6 +300,51 @@ function OrderPanel({ data, reload }) {
         </div>
       </form>
     </section>
+  );
+}
+
+// Freiwillig als Organisator eintragen bzw. wieder austragen (nur im Modus
+// "freiwillig"; eintragen können sich Mitbesteller, solange der Platz frei ist).
+function VolunteerControls({ data, user, reload }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const { day } = data;
+
+  if (day.organizerMode !== 'freiwillig' || day.status === 'closed') return null;
+
+  const iAmVolunteer = day.organizerId === user.id && day.organizerSource === 'freiwillig';
+  const canVolunteer = !day.organizerId && day.status === 'phase2' && Boolean(data.myOrder);
+
+  async function call(method) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/days/${day.id}/volunteer`, { method });
+      await reload();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="volunteer-controls">
+      {error && <div className="alert">{error}</div>}
+      {canVolunteer && (
+        <button className="btn btn-sm" disabled={busy} onClick={() => call('POST')}>
+          <FontAwesomeIcon icon={faHandPointUp} /> Als Organisator eintragen
+        </button>
+      )}
+      {!day.organizerId && day.status === 'phase2' && !data.myOrder && (
+        <small className="muted">Sobald du bestellt hast, kannst du dich als Organisator eintragen.</small>
+      )}
+      {iAmVolunteer && (
+        <button className="btn btn-sm" disabled={busy} onClick={() => call('DELETE')}>
+          <FontAwesomeIcon icon={faXmark} /> Als Organisator austragen
+        </button>
+      )}
+    </div>
   );
 }
 

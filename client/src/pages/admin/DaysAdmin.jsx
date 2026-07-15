@@ -13,9 +13,12 @@ import {
 import { api } from '../../api.js';
 import {
   DAY_STATUS,
+  ORGANIZER_MODES,
+  ORGANIZER_SOURCE_LABELS,
   fmtDateShort,
   fmtPrice,
   fmtTime,
+  organizerModeLabel,
   statusLabel,
   timeInputValue,
 } from '../../format.js';
@@ -38,6 +41,7 @@ export default function DaysAdmin() {
     return {
       date: todayLocal(),
       organizerId: '',
+      organizerMode: s?.defaultOrganizerMode ?? 'manuell',
       phase1Time: s?.defaultPhase1Time ?? '10:30',
       phase2Time: s?.defaultPhase2Time ?? '11:45',
       restaurantIds: [],
@@ -87,7 +91,8 @@ export default function DaysAdmin() {
       setEditingId(day.id);
       setForm({
         date: day.date,
-        organizerId: day.organizerId ?? '',
+        organizerId: day.organizerSource === 'manuell' ? (day.organizerId ?? '') : '',
+        organizerMode: day.organizerMode ?? 'manuell',
         phase1Time: timeInputValue(day.phase1Deadline),
         phase2Time: timeInputValue(day.phase2Deadline),
         restaurantIds: full.restaurants.map((r) => r.id),
@@ -104,6 +109,7 @@ export default function DaysAdmin() {
     const body = {
       date: form.date,
       organizerId: form.organizerId === '' ? null : Number(form.organizerId),
+      organizerMode: form.organizerMode,
       phase1Deadline: new Date(`${form.date}T${form.phase1Time}`).toISOString(),
       phase2Deadline: new Date(`${form.date}T${form.phase2Time}`).toISOString(),
       restaurantIds: form.restaurantIds,
@@ -177,19 +183,46 @@ export default function DaysAdmin() {
               />
             </label>
             <label>
-              Organisator
+              Organisator-Modus
               <select
-                value={form.organizerId}
-                onChange={(e) => setForm({ ...form, organizerId: e.target.value })}
+                value={form.organizerMode}
+                onChange={(e) => setForm({ ...form, organizerMode: e.target.value })}
               >
-                <option value="">– niemand –</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.displayName}
+                {ORGANIZER_MODES.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
                   </option>
                 ))}
               </select>
             </label>
+            {form.organizerMode === 'manuell' ? (
+              <label>
+                Organisator
+                <select
+                  value={form.organizerId}
+                  onChange={(e) => setForm({ ...form, organizerId: e.target.value })}
+                >
+                  <option value="">– niemand –</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label>
+                Organisator
+                <input
+                  value={
+                    form.organizerMode === 'freiwillig'
+                      ? 'per freiwilliger Meldung (Fallback: Zufall)'
+                      : 'wird zufällig bestimmt'
+                  }
+                  disabled
+                />
+              </label>
+            )}
             <label>
               Ende Restaurantwahl (Phase 1)
               <input
@@ -278,7 +311,24 @@ export default function DaysAdmin() {
                     </td>
                     <td>{fmtTime(d.phase1Deadline)}</td>
                     <td>{fmtTime(d.phase2Deadline)}</td>
-                    <td>{d.organizerName || '–'}</td>
+                    <td>
+                      {d.organizerName ? (
+                        <>
+                          {d.organizerName}
+                          {d.organizerSource && d.organizerSource !== 'manuell' && (
+                            <small className="muted" style={{ display: 'block' }}>
+                              {ORGANIZER_SOURCE_LABELS[d.organizerSource]}
+                            </small>
+                          )}
+                        </>
+                      ) : d.organizerMode !== 'manuell' ? (
+                        <span className="muted">
+                          {d.organizerMode === 'freiwillig' ? 'Freiwillige gesucht' : 'Zufall'}
+                        </span>
+                      ) : (
+                        '–'
+                      )}
+                    </td>
                     <td>{d.winnerName || '–'}</td>
                     <td className="num">{d.voteCount}</td>
                     <td className="num">{d.orderCount}</td>
@@ -308,8 +358,12 @@ export default function DaysAdmin() {
 
       {settings && (
         <div className="card">
-          <h2>Standard-Abstimmungszeiten</h2>
-          <p className="muted">Vorbelegung für neue Tage.</p>
+          <h2>Standardeinstellungen</h2>
+          <p className="muted">
+            Vorbelegung für neue Tage sowie der Zeitpunkt, zu dem bei freiwilliger Meldung ohne
+            Kandidat bzw. im Zufallsmodus automatisch ein Organisator aus den Mitbestellern
+            bestimmt wird.
+          </p>
           <form className="row wrap" onSubmit={saveSettings}>
             <label className="inline-select">
               Ende Phase 1
@@ -326,6 +380,35 @@ export default function DaysAdmin() {
                 value={settings.defaultPhase2Time}
                 onChange={(e) => setSettings({ ...settings, defaultPhase2Time: e.target.value })}
               />
+            </label>
+            <label className="inline-select">
+              Organisator-Modus (Standard)
+              <select
+                value={settings.defaultOrganizerMode}
+                onChange={(e) => setSettings({ ...settings, defaultOrganizerMode: e.target.value })}
+              >
+                {ORGANIZER_MODES.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="inline-select">
+              Zuweisung
+              <select
+                value={String(settings.organizerAssignMinutes)}
+                onChange={(e) =>
+                  setSettings({ ...settings, organizerAssignMinutes: Number(e.target.value) })
+                }
+              >
+                <option value="0">zum Bestellschluss</option>
+                <option value="5">5 Min. vor Bestellschluss</option>
+                <option value="10">10 Min. vor Bestellschluss</option>
+                <option value="15">15 Min. vor Bestellschluss</option>
+                <option value="30">30 Min. vor Bestellschluss</option>
+                <option value="60">60 Min. vor Bestellschluss</option>
+              </select>
             </label>
             <button className="btn btn-primary">
               <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
