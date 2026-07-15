@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCalendarDays,
+  faChevronDown,
   faClipboardList,
   faMoon,
   faPalette,
   faReceipt,
   faRightFromBracket,
+  faScrewdriverWrench,
   faStore,
   faSun,
   faUsers,
@@ -18,12 +20,22 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useBranding } from '../branding/BrandingContext.jsx';
 import { currentTheme, toggleTheme } from '../theme.js';
 
+const ADMIN_LINKS = [
+  { to: '/admin/tage', icon: faCalendarDays, label: 'Tagesplanung' },
+  { to: '/admin/restaurants', icon: faStore, label: 'Restaurants & Speisekarten' },
+  { to: '/admin/benutzer', icon: faUsers, label: 'Benutzer' },
+  { to: '/admin/design', icon: faPalette, label: 'Design & Branding' },
+];
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { branding } = useBranding();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showOrganizerLink, setShowOrganizerLink] = useState(user.role === 'admin');
   const [theme, setTheme] = useState(currentTheme());
+  const [adminOpen, setAdminOpen] = useState(false);
+  const adminRef = useRef(null);
 
   useEffect(() => {
     if (user.role === 'admin') {
@@ -34,6 +46,35 @@ export default function Layout() {
       .then((d) => setShowOrganizerLink(d.days.length > 0))
       .catch(() => {});
   }, [user]);
+
+  // Dropdown schließt bei Navigation, Klick außerhalb und Escape.
+  useEffect(() => {
+    setAdminOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!adminOpen) return undefined;
+    const onPointer = (e) => {
+      if (adminRef.current && !adminRef.current.contains(e.target)) setAdminOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setAdminOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [adminOpen]);
+
+  const mainLinks = [
+    { to: '/', icon: faUtensils, label: 'Heute', end: true },
+    { to: '/meine-bestellungen', icon: faReceipt, label: 'Meine Bestellungen' },
+    ...(showOrganizerLink
+      ? [{ to: '/organisation', icon: faClipboardList, label: 'Organisation' }]
+      : []),
+  ];
 
   return (
     <div className="app">
@@ -48,32 +89,33 @@ export default function Layout() {
             Essensbestellung
           </span>
           <nav className="nav">
-            <NavLink to="/" end>
-              <FontAwesomeIcon icon={faUtensils} fixedWidth /> Heute
-            </NavLink>
-            <NavLink to="/meine-bestellungen">
-              <FontAwesomeIcon icon={faReceipt} fixedWidth /> Meine Bestellungen
-            </NavLink>
-            {showOrganizerLink && (
-              <NavLink to="/organisation">
-                <FontAwesomeIcon icon={faClipboardList} fixedWidth /> Organisation
+            {mainLinks.map((l) => (
+              <NavLink key={l.to} to={l.to} end={l.end}>
+                <FontAwesomeIcon icon={l.icon} fixedWidth /> {l.label}
               </NavLink>
-            )}
+            ))}
             {user.role === 'admin' && (
-              <>
-                <NavLink to="/admin/tage">
-                  <FontAwesomeIcon icon={faCalendarDays} fixedWidth /> Tagesplanung
-                </NavLink>
-                <NavLink to="/admin/restaurants">
-                  <FontAwesomeIcon icon={faStore} fixedWidth /> Restaurants
-                </NavLink>
-                <NavLink to="/admin/benutzer">
-                  <FontAwesomeIcon icon={faUsers} fixedWidth /> Benutzer
-                </NavLink>
-                <NavLink to="/admin/design">
-                  <FontAwesomeIcon icon={faPalette} fixedWidth /> Design
-                </NavLink>
-              </>
+              <div className={`nav-dropdown${adminOpen ? ' open' : ''}`} ref={adminRef}>
+                <button
+                  type="button"
+                  className={`nav-dropdown-trigger${
+                    location.pathname.startsWith('/admin') ? ' active' : ''
+                  }`}
+                  aria-haspopup="menu"
+                  aria-expanded={adminOpen}
+                  onClick={() => setAdminOpen((o) => !o)}
+                >
+                  <FontAwesomeIcon icon={faScrewdriverWrench} fixedWidth /> Admin{' '}
+                  <FontAwesomeIcon icon={faChevronDown} className="nav-dropdown-chevron" />
+                </button>
+                <div className="nav-dropdown-menu" role="menu">
+                  {ADMIN_LINKS.map((l) => (
+                    <NavLink key={l.to} to={l.to} role="menuitem" onClick={() => setAdminOpen(false)}>
+                      <FontAwesomeIcon icon={l.icon} fixedWidth /> {l.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
             )}
           </nav>
           <div className="topbar-user">
