@@ -42,7 +42,10 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: linear-gradient(135deg, var(--color-primary) 22%, #0a0e15);
+  --bg: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary) 25%, transparent),
+    #0a0e15
+  );
   --card: #141a24;
   --text: #f2f4f7;
   --muted: #98a3b3;
