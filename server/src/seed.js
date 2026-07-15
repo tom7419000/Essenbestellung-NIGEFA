@@ -128,11 +128,11 @@ insertVote.run(yDay, anna, burger);
 insertVote.run(yDay, ben, burger);
 insertVote.run(yDay, clara, pizzeria);
 const insertOrder = db.prepare(
-  `INSERT INTO orders (day_id, user_id, menu_item_id, note, status) VALUES (?, ?, ?, ?, 'geliefert')`
+  `INSERT INTO orders (day_id, user_id, menu_item_id, note, status, paid) VALUES (?, ?, ?, ?, 'geliefert', ?)`
 );
-insertOrder.run(yDay, anna, bbq, '');
-insertOrder.run(yDay, ben, cheeseburger, 'ohne Gurke');
-insertOrder.run(yDay, clara, veggie, 'Dressing extra');
+insertOrder.run(yDay, anna, bbq, '', 1);
+insertOrder.run(yDay, ben, cheeseburger, 'ohne Gurke', 1);
+insertOrder.run(yDay, clara, veggie, 'Dressing extra', 0);
 
 // --- Heute: laufender Tag in Phase 1 ---
 const today = todayStr();

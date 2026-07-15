@@ -69,14 +69,15 @@ function ordersOf(dayId) {
     .prepare(
       `SELECT o.id, o.user_id AS userId, u.display_name AS userName,
               o.menu_item_id AS menuItemId, mi.name AS itemName, mi.price_cents AS priceCents,
-              o.note, o.status, o.updated_at AS updatedAt
+              o.note, o.status, o.paid, o.updated_at AS updatedAt
        FROM orders o
        JOIN users u ON u.id = o.user_id
        LEFT JOIN menu_items mi ON mi.id = o.menu_item_id
        WHERE o.day_id = ?
        ORDER BY u.display_name COLLATE NOCASE`
     )
-    .all(dayId);
+    .all(dayId)
+    .map((o) => ({ ...o, paid: !!o.paid }));
 }
 
 function isOrganizerOrAdmin(user, day) {
@@ -291,6 +292,15 @@ daysRouter.get('/:id/full', (req, res) => {
     .filter((o) => o.status !== 'storniert' && o.priceCents != null)
     .reduce((sum, o) => sum + o.priceCents, 0);
 
+  // Bezahlt-Übersicht (stornierte Bestellungen zählen nicht mit)
+  const active = orders.filter((o) => o.status !== 'storniert');
+  const paidStats = {
+    paidCount: active.filter((o) => o.paid).length,
+    totalCount: active.length,
+    paidCents: active.filter((o) => o.paid && o.priceCents != null).reduce((s, o) => s + o.priceCents, 0),
+    openCents: active.filter((o) => !o.paid && o.priceCents != null).reduce((s, o) => s + o.priceCents, 0),
+  };
+
   res.json({
     day: mapDay(day),
     serverNow: new Date().toISOString(),
@@ -300,6 +310,7 @@ daysRouter.get('/:id/full', (req, res) => {
     orders,
     summary,
     totalCents,
+    paidStats,
   });
 });
 
@@ -318,6 +329,23 @@ daysRouter.patch('/:id/orders-status', (req, res) => {
     `UPDATE orders SET status = ?, updated_at = datetime('now')
      WHERE day_id = ? AND status != 'storniert'`
   ).run(status, day.id);
+  res.json({ ok: true });
+});
+
+// Sammelaktion: alle (nicht stornierten) Bestellungen des Tages als
+// bezahlt/offen markieren.
+daysRouter.patch('/:id/orders-paid', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (!isOrganizerOrAdmin(req.user, day)) {
+    return res.status(403).json({ message: 'Nur für den Organisator oder Administratoren.' });
+  }
+  const paid = req.body?.paid ? 1 : 0;
+  db.prepare(
+    `UPDATE orders SET paid = ?, updated_at = datetime('now')
+     WHERE day_id = ? AND status != 'storniert'`
+  ).run(paid, day.id);
   res.json({ ok: true });
 });
 
@@ -494,6 +522,22 @@ ordersRouter.patch('/:id/status', (req, res) => {
   }
   db.prepare("UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?").run(
     status,
+    order.id
+  );
+  res.json({ ok: true });
+});
+
+// Bezahlt-Status einer einzelnen Bestellung (Organisator des Tages oder Admin).
+ordersRouter.patch('/:id/paid', (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ message: 'Bestellung nicht gefunden.' });
+  const day = getDay(order.day_id);
+  if (!isOrganizerOrAdmin(req.user, day)) {
+    return res.status(403).json({ message: 'Nur für den Organisator oder Administratoren.' });
+  }
+  const paid = req.body?.paid ? 1 : 0;
+  db.prepare("UPDATE orders SET paid = ?, updated_at = datetime('now') WHERE id = ?").run(
+    paid,
     order.id
   );
   res.json({ ok: true });

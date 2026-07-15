@@ -32,6 +32,7 @@ export default function MyOrdersPage() {
                   <th>Bemerkung</th>
                   <th className="num">Preis</th>
                   <th>Status</th>
+                  <th>Bezahlt</th>
                 </tr>
               </thead>
               <tbody>
@@ -44,6 +45,14 @@ export default function MyOrdersPage() {
                     <td className="num">{fmtPrice(o.priceCents)}</td>
                     <td>
                       <span className={`badge order-${o.status}`}>{statusLabel(o.status)}</span>
+                    </td>
+                    <td>
+                      {o.status !== 'storniert' &&
+                        (o.paid ? (
+                          <span className="badge badge-ok">bezahlt</span>
+                        ) : (
+                          <span className="badge badge-off">offen</span>
+                        ))}
                     </td>
                   </tr>
                 ))}

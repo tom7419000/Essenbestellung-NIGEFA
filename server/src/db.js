@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS orders (
   menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE SET NULL,
   note         TEXT NOT NULL DEFAULT '',
   status       TEXT NOT NULL DEFAULT 'eingegangen' CHECK (status IN ('eingegangen', 'bestellt', 'geliefert', 'storniert')),
+  paid         INTEGER NOT NULL DEFAULT 0,
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (day_id, user_id)
@@ -145,6 +146,15 @@ const migrations = [
         db.exec('ALTER TABLE days ADD COLUMN organizer_source TEXT');
         // Bestehende Zuweisungen stammen aus der manuellen Tagesplanung.
         db.exec("UPDATE days SET organizer_source = 'manuell' WHERE organizer_id IS NOT NULL");
+      }
+    },
+  },
+  {
+    version: 4,
+    name: 'orders.paid (Bezahlt-Status)',
+    up() {
+      if (!columnExists('orders', 'paid')) {
+        db.exec('ALTER TABLE orders ADD COLUMN paid INTEGER NOT NULL DEFAULT 0');
       }
     },
   },

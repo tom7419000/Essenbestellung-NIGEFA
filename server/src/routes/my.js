@@ -10,7 +10,7 @@ router.use(requireAuth);
 router.get('/orders', (req, res) => {
   const rows = db
     .prepare(
-      `SELECT o.id, d.date, o.note, o.status, o.updated_at AS updatedAt,
+      `SELECT o.id, d.date, o.note, o.status, o.paid, o.updated_at AS updatedAt,
               mi.name AS itemName, mi.price_cents AS priceCents,
               r.name AS restaurantName
        FROM orders o

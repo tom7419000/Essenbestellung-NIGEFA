@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faTruck } from '@fortawesome/free-solid-svg-icons';
+import { faEuroSign, faPaperPlane, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import {
@@ -63,6 +63,24 @@ export default function OrganizerPage() {
   async function bulkStatus(status) {
     try {
       await api(`/days/${selectedId}/orders-status`, { method: 'PATCH', body: { status } });
+      await loadDetail();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function setPaid(orderId, paid) {
+    try {
+      await api(`/orders/${orderId}/paid`, { method: 'PATCH', body: { paid } });
+      await loadDetail();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function bulkPaid(paid) {
+    try {
+      await api(`/days/${selectedId}/orders-paid`, { method: 'PATCH', body: { paid } });
       await loadDetail();
     } catch (e) {
       setError(e.message);
@@ -197,15 +215,30 @@ export default function OrganizerPage() {
           <div className="card">
             <div className="row space-between wrap">
               <h3>Einzelbestellungen ({detail.orders.length})</h3>
-              <div className="row">
+              <div className="row wrap">
                 <button className="btn" onClick={() => bulkStatus('bestellt')}>
                   <FontAwesomeIcon icon={faPaperPlane} /> Alle auf „Bestellt“
                 </button>
                 <button className="btn" onClick={() => bulkStatus('geliefert')}>
                   <FontAwesomeIcon icon={faTruck} /> Alle auf „Geliefert“
                 </button>
+                <button className="btn" onClick={() => bulkPaid(true)}>
+                  <FontAwesomeIcon icon={faEuroSign} /> Alle als bezahlt
+                </button>
               </div>
             </div>
+            {detail.paidStats && detail.paidStats.totalCount > 0 && (
+              <div className={`notice${detail.paidStats.paidCount === detail.paidStats.totalCount ? ' success' : ''}`}>
+                Bezahlt: <b>{detail.paidStats.paidCount} von {detail.paidStats.totalCount}</b>
+                {' '}({fmtPrice(detail.paidStats.paidCents)} erhalten
+                {detail.paidStats.openCents > 0 && (
+                  <>
+                    , <b>{fmtPrice(detail.paidStats.openCents)} offen</b>
+                  </>
+                )}
+                )
+              </div>
+            )}
             {detail.orders.length === 0 ? (
               <p className="muted">Noch keine Bestellungen.</p>
             ) : (
@@ -218,6 +251,7 @@ export default function OrganizerPage() {
                       <th className="num">Preis</th>
                       <th>Bemerkung</th>
                       <th>Status</th>
+                      <th>Bezahlt</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -239,6 +273,21 @@ export default function OrganizerPage() {
                               </option>
                             ))}
                           </select>
+                        </td>
+                        <td>
+                          <label className="checkbox paid-toggle" title="bezahlt / offen">
+                            <input
+                              type="checkbox"
+                              checked={o.paid}
+                              disabled={o.status === 'storniert'}
+                              onChange={(e) => setPaid(o.id, e.target.checked)}
+                            />
+                            {o.paid ? (
+                              <span className="badge badge-ok">bezahlt</span>
+                            ) : (
+                              <span className="badge badge-off">offen</span>
+                            )}
+                          </label>
                         </td>
                       </tr>
                     ))}
