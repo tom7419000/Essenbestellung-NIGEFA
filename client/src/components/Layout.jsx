@@ -145,12 +145,13 @@ export default function Layout() {
           </nav>
           <div className="topbar-user">
             <button
-              className="btn btn-ghost theme-toggle"
+              className="btn theme-toggle"
               title={theme === 'dark' ? 'Zum hellen Modus wechseln' : 'Zum dunklen Modus wechseln'}
               aria-label="Hell-/Dunkelmodus umschalten"
               onClick={() => setTheme(toggleTheme())}
             >
-              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
+              <FontAwesomeIcon icon={theme === 'dark' ? faMoon : faSun} />
+              <span className="theme-toggle-label">{theme === 'dark' ? 'Dunkel' : 'Hell'}</span>
             </button>
             <span className="user-name">
               {user.displayName}

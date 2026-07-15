@@ -60,6 +60,7 @@ export default function TodayPage() {
     <div className="stack">
       <header className="page-head card">
         <div>
+          <span className="eyebrow">Mittagessen</span>
           <h1>{fmtDateLong(day.date)}</h1>
           <p className="muted">
             {data.organizerName ? (
@@ -138,7 +139,9 @@ function VotePanel({ data, reload }) {
 
   return (
     <section className="card">
-      <h2>Wo bestellen wir heute?</h2>
+      <h2>
+        <span className="step-badge">1</span>Wo bestellen wir heute?
+      </h2>
       <p className="muted">
         Stimme für ein Restaurant ab – du kannst deine Stimme bis zum Ende der Abstimmung ändern.
       </p>
@@ -239,7 +242,9 @@ function OrderPanel({ data, reload }) {
 
   return (
     <section className="card">
-      <h2>Essen auswählen</h2>
+      <h2>
+        <span className="step-badge">2</span>Essen auswählen
+      </h2>
       {myOrder ? (
         <div className="notice success">
           Deine Bestellung ist gespeichert: <b>{myOrder.itemName}</b>
@@ -363,7 +368,9 @@ function groupByCategory(menu) {
 function NoMenuPanel({ data }) {
   return (
     <section className="card">
-      <h2>Essen auswählen</h2>
+      <h2>
+        <span className="step-badge">2</span>Essen auswählen
+      </h2>
       <div className="notice">
         Für dieses Restaurant ist <b>keine Speisekarte hinterlegt</b> – bitte individuell
         bestellen bzw. direkt anrufen{data.winner?.phone && <> (☎ {data.winner.phone})</>}
