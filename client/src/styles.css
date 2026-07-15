@@ -42,7 +42,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #0a0e15;
+  --bg: color-mix(in srgb, var(--color-primary) 65%, #0a0e15);
   --card: #141a24;
   --text: #f2f4f7;
   --muted: #98a3b3;
