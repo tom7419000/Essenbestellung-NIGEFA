@@ -5,10 +5,20 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
 import { requireAuth, sanitizeUser, signToken } from '../auth.js';
 import { getSsoConfig } from '../sso.js';
+import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
 
-router.post('/login', (req, res) => {
+// Brute-Force-Schutz (H3): pro Client-IP begrenzt.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: 'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.',
+});
+const ssoLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
+const passwordLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
+
+router.post('/login', loginLimiter, (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ message: 'Bitte Benutzername und Passwort angeben.' });
@@ -50,7 +60,7 @@ async function entraPublicKey(kid, tenantId) {
   return crypto.createPublicKey({ key: jwk, format: 'jwk' });
 }
 
-router.post('/sso', async (req, res) => {
+router.post('/sso', ssoLimiter, async (req, res) => {
   try {
     // Konfiguration aus dem Admin-Bereich (DB) mit Env-Fallback.
     const { enabled, clientId, tenantId } = getSsoConfig();
@@ -113,7 +123,7 @@ router.post('/sso', async (req, res) => {
   }
 });
 
-router.post('/change-password', requireAuth, (req, res) => {
+router.post('/change-password', passwordLimiter, requireAuth, (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
   if (!newPassword || String(newPassword).length < 6) {
     return res.status(400).json({ message: 'Neues Passwort: mindestens 6 Zeichen.' });
