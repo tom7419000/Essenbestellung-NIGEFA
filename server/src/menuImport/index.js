@@ -7,7 +7,7 @@ export { ImportError };
 // Erkennt den Anbieter anhand der URL bzw. des Seiteninhalts und liefert die
 // geparste Speisekarte als Vorschau zurück (noch ohne zu speichern).
 export async function importMenuFromUrl(rawUrl) {
-  const u = assertPublicHttpUrl(rawUrl);
+  const u = await assertPublicHttpUrl(rawUrl);
 
   if (isLieferandoUrl(u)) {
     return { provider: 'lieferando', ...(await importLieferando(u)) };
