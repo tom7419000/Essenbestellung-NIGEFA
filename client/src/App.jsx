@@ -10,6 +10,7 @@ import UsersAdmin from './pages/admin/UsersAdmin.jsx';
 import RestaurantsAdmin from './pages/admin/RestaurantsAdmin.jsx';
 import DaysAdmin from './pages/admin/DaysAdmin.jsx';
 import DesignAdmin from './pages/admin/DesignAdmin.jsx';
+import SsoAdmin from './pages/admin/SsoAdmin.jsx';
 
 function Protected({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -65,6 +66,14 @@ export default function App() {
               element={
                 <Protected adminOnly>
                   <DesignAdmin />
+                </Protected>
+              }
+            />
+            <Route
+              path="/admin/sso"
+              element={
+                <Protected adminOnly>
+                  <SsoAdmin />
                 </Protected>
               }
             />

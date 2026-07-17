@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
 import { requireAuth, sanitizeUser, signToken } from '../auth.js';
+import { getSsoConfig } from '../sso.js';
 
 const router = Router();
 
@@ -51,10 +52,10 @@ async function entraPublicKey(kid, tenantId) {
 
 router.post('/sso', async (req, res) => {
   try {
-    const clientId = process.env.ENTRA_CLIENT_ID;
-    const tenantId = process.env.ENTRA_TENANT_ID;
-    if (!clientId || !tenantId) {
-      return res.status(503).json({ message: 'SSO ist auf dem Server nicht konfiguriert.' });
+    // Konfiguration aus dem Admin-Bereich (DB) mit Env-Fallback.
+    const { enabled, clientId, tenantId } = getSsoConfig();
+    if (!enabled) {
+      return res.status(503).json({ message: 'SSO ist deaktiviert oder nicht konfiguriert.' });
     }
 
     const idToken = String(req.body?.idToken || '');

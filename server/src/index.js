@@ -13,6 +13,7 @@ import myRouter from './routes/my.js';
 import settingsRouter from './routes/settings.js';
 import brandingRouter, { faviconAlias } from './routes/branding.js';
 import menuImportRouter from './routes/menuImport.js';
+import ssoRouter, { wellKnownHandler } from './routes/sso.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -36,11 +37,16 @@ app.use('/api/my', myRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/branding', brandingRouter);
 app.use('/api/menu-import', menuImportRouter);
+app.use('/api/sso', ssoRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Nicht gefunden.' }));
 
 // Hochgeladenes Favicon auch unter dem klassischen Pfad bereitstellen.
 app.get('/favicon.ico', faviconAlias);
+
+// OIDC-Discovery für die Verbundanmeldeinformation (Entra ID ruft dieses
+// Dokument samt JWKS ab, um Client-Assertions des Portals zu prüfen).
+app.get('/.well-known/openid-configuration', wellKnownHandler);
 
 // Produktionsmodus: gebautes Frontend aus client/dist ausliefern.
 const dist = path.resolve(__dirname, '../../client/dist');

@@ -6,6 +6,7 @@ import {
   faCalendarDays,
   faChevronDown,
   faClipboardList,
+  faKey,
   faMoon,
   faPalette,
   faReceipt,
@@ -27,6 +28,7 @@ const ADMIN_LINKS = [
   { to: '/admin/restaurants', icon: faStore, label: 'Restaurants & Speisekarten' },
   { to: '/admin/benutzer', icon: faUsers, label: 'Benutzer' },
   { to: '/admin/design', icon: faPalette, label: 'Design & Branding' },
+  { to: '/admin/sso', icon: faKey, label: 'Anmeldung (SSO)' },
 ];
 
 export default function Layout() {
