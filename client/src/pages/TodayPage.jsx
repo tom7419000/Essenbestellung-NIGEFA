@@ -11,6 +11,7 @@ import {
   fmtDateLong,
   fmtPrice,
   fmtTime,
+  safeHttpUrl,
   statusLabel,
 } from '../format.js';
 
@@ -189,11 +190,11 @@ function WinnerBanner({ data }) {
         <p className="muted">
           {data.winnerVotes} {data.winnerVotes === 1 ? 'Stimme' : 'Stimmen'}
           {data.winner.phone && <> · ☎ {data.winner.phone}</>}
-          {data.winner.website && (
+          {safeHttpUrl(data.winner.website) && (
             <>
               {' '}
               ·{' '}
-              <a href={data.winner.website} target="_blank" rel="noreferrer">
+              <a href={safeHttpUrl(data.winner.website)} target="_blank" rel="noreferrer">
                 Speisekarte
               </a>
             </>

@@ -60,14 +60,34 @@ restaurantsRouter.get('/:id/menu', (req, res) => {
   res.json({ restaurant: mapRestaurant(restaurant), items: items.map(mapItem) });
 });
 
+// Website-URL absichern (M1): Die Adresse wird allen Nutzern als anklickbarer
+// Link angezeigt. Nur http(s) zulassen, damit keine gefährlichen Schemata
+// (javascript:, data:, …) als Stored-XSS-Vektor gespeichert werden können.
+function sanitizeWebsite(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return { website: '' };
+  let u;
+  try {
+    u = new URL(value);
+  } catch {
+    return { error: 'Website: bitte eine vollständige URL angeben (z. B. https://…).' };
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+    return { error: 'Website: nur http(s)-Adressen sind erlaubt.' };
+  }
+  return { website: u.toString() };
+}
+
 function validateRestaurantInput(body) {
   const name = String(body?.name || '').trim();
   if (!name) return { error: 'Bitte einen Namen angeben.' };
+  const web = sanitizeWebsite(body?.website);
+  if (web.error) return { error: web.error };
   return {
     name,
     description: String(body?.description || '').trim(),
     phone: String(body?.phone || '').trim(),
-    website: String(body?.website || '').trim(),
+    website: web.website,
   };
 }
 

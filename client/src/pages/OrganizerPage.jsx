@@ -11,6 +11,7 @@ import {
   fmtDateShort,
   fmtPrice,
   fmtTime,
+  safeHttpUrl,
   statusLabel,
 } from '../format.js';
 
@@ -161,11 +162,11 @@ export default function OrganizerPage() {
             {detail.winner?.phone && (
               <p className="muted">
                 ☎ {detail.winner.phone}
-                {detail.winner.website && (
+                {safeHttpUrl(detail.winner.website) && (
                   <>
                     {' '}
                     ·{' '}
-                    <a href={detail.winner.website} target="_blank" rel="noreferrer">
+                    <a href={safeHttpUrl(detail.winner.website)} target="_blank" rel="noreferrer">
                       Website
                     </a>
                   </>

@@ -58,6 +58,17 @@ export const ORGANIZER_SOURCE_LABELS = {
   zufaellig: 'zufällig ausgewählt',
 };
 
+// Nur http(s)-URLs als Link zulassen (Schutz vor javascript:/data:-Links).
+export function safeHttpUrl(raw) {
+  if (!raw) return null;
+  try {
+    const u = new URL(String(raw));
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function parsePriceInput(text) {
   const trimmed = String(text || '').trim();
   if (!trimmed) return null;
