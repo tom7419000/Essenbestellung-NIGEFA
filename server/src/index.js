@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { initDb } from './db.js';
 import { resolveOpenDays } from './dayLogic.js';
+import { securityHeaders } from './security.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import { restaurantsRouter, menuItemsRouter } from './routes/restaurants.js';
@@ -25,6 +26,14 @@ resolveOpenDays();
 setInterval(resolveOpenDays, 30_000);
 
 const app = express();
+
+// Hinter einem Reverse-Proxy die X-Forwarded-*-Header berücksichtigen
+// (für HTTPS-Erkennung und korrekte Client-IP beim Rate-Limiting).
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
+
+// Sicherheits-Header für alle Antworten (inkl. Fehlerseiten und statischem Frontend).
+app.use(securityHeaders);
+
 app.use(express.json());
 
 app.use('/api/auth', authRouter);
