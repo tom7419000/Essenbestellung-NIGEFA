@@ -88,7 +88,7 @@ Frontend-Build, Datenbank und **systemd-Dienst mit Autostart**. Es müssen keine
 manuell angelegt werden.
 
 ```bash
-git clone https://github.com/tom7419000/Essenbestellung-NIGEFA.git
+git clone https://gitlab.nigefa.de/t.sattler/essensportal.git
 cd Essenbestellung-NIGEFA
 sudo bash install-essen-nigefa.sh
 ```
