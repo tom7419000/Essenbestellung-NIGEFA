@@ -1,4 +1,4 @@
-# 🍽️ Essensbestellung
+# 🍽️ Essensbestellung - Test
 
 Moderne Webanwendung zur Organisation täglicher Essensbestellungen im Team – mit
 **Zwei-Phasen-Abstimmung**: Erst wählt das Team das Restaurant, dann bestellt jeder sein
