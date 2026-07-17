@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api, clearToken, getToken, setToken } from '../api.js';
-import { SSO_FLAG_KEY, msalInstance, ssoEnabled } from './msal.js';
+import { SSO_FLAG_KEY, getMsalInstance, initSso } from './msal.js';
 
 const AuthContext = createContext(null);
 
@@ -11,17 +11,30 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [ssoAutoRedirect, setSsoAutoRedirect] = useState(false);
   const [ssoError, setSsoError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      // 1) Rückkehr vom Entra-ID-Login verarbeiten (Redirect-Flow)
-      if (msalInstance) {
+      // 1) SSO-Laufzeitkonfiguration laden und ggf. Rückkehr vom
+      //    Entra-ID-Login verarbeiten (Redirect-Flow)
+      let instance = null;
+      try {
+        const sso = await initSso();
+        instance = sso.instance;
+        if (!cancelled) {
+          setSsoEnabled(sso.config.enabled === true);
+          setSsoAutoRedirect(Boolean(sso.config.autoRedirect));
+        }
+      } catch {
+        /* SSO bleibt deaktiviert */
+      }
+      if (instance) {
         try {
-          await msalInstance.initialize();
-          const result = await msalInstance.handleRedirectPromise();
+          const result = await instance.handleRedirectPromise();
           if (result?.idToken) {
             const d = await api('/auth/sso', { method: 'POST', body: { idToken: result.idToken } });
             if (cancelled) return;
@@ -67,7 +80,9 @@ export function AuthProvider({ children }) {
   // Weiterleitung zum Microsoft-Login; zurück geht es über handleRedirectPromise.
   const loginSso = useCallback(async () => {
     setSsoError('');
-    await msalInstance.loginRedirect({ scopes: ['openid', 'profile', 'email'] });
+    const instance = getMsalInstance();
+    if (!instance) throw new Error('SSO ist nicht aktiviert.');
+    await instance.loginRedirect({ scopes: ['openid', 'profile', 'email'] });
   }, []);
 
   const logout = useCallback(() => {
@@ -76,13 +91,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(SSO_FLAG_KEY);
     setUser(null);
     // Bei SSO-Sitzungen auch die Entra-ID-Sitzung sauber beenden.
-    if (wasSso && msalInstance) {
-      msalInstance.logoutRedirect().catch(() => {});
+    const instance = getMsalInstance();
+    if (wasSso && instance) {
+      instance.logoutRedirect().catch(() => {});
     }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, loginSso, ssoEnabled, ssoError }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, loginSso, ssoEnabled, ssoAutoRedirect, ssoError }}
+    >
       {children}
     </AuthContext.Provider>
   );

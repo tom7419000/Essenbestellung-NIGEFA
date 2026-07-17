@@ -2,13 +2,24 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRightToBracket } from '@fortawesome/free-solid-svg-icons';
-import { faMicrosoft } from '@fortawesome/free-brands-svg-icons';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { ssoAutoRedirect } from '../auth/msal.js';
 import { useBranding } from '../branding/BrandingContext.jsx';
 
+// Offizielles Microsoft-Logo (vier Quadrate) gemäß Microsoft-Branding-
+// Richtlinien für „Mit Microsoft anmelden“-Buttons.
+function MicrosoftLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true" focusable="false">
+      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
-  const { user, loading, login, loginSso, ssoEnabled, ssoError } = useAuth();
+  const { user, loading, login, loginSso, ssoEnabled, ssoAutoRedirect, ssoError } = useAuth();
   const { branding } = useBranding();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -16,12 +27,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Optional (VITE_ENTRA_AUTO_REDIRECT=1): ohne Sitzung direkt zu Microsoft weiterleiten.
+  // Optional (Admin → Anmeldung: „automatisch weiterleiten“): ohne Sitzung
+  // direkt zum Microsoft-Login.
   useEffect(() => {
-    if (!loading && !user && ssoAutoRedirect && !ssoError) {
+    if (!loading && !user && ssoEnabled && ssoAutoRedirect && !ssoError) {
       loginSso().catch(() => {});
     }
-  }, [loading, user, ssoError, loginSso]);
+  }, [loading, user, ssoEnabled, ssoAutoRedirect, ssoError, loginSso]);
 
   if (loading) return <div className="page-loading">Lädt …</div>;
   if (user) return <Navigate to="/" replace />;
@@ -55,11 +67,12 @@ export default function LoginPage() {
           <>
             <button
               type="button"
-              className="btn btn-microsoft btn-block"
+              className="ms-signin-btn"
               disabled={busy}
               onClick={() => loginSso().catch((e) => setError(e.message))}
             >
-              <FontAwesomeIcon icon={faMicrosoft} /> Mit Microsoft anmelden
+              <MicrosoftLogo />
+              <span>Mit Microsoft anmelden</span>
             </button>
             <div className="login-divider">
               <span>oder mit lokalem Konto</span>
