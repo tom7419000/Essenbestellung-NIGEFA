@@ -205,12 +205,10 @@ PORT=${PORT}
 APP_TIMEZONE=${APP_TIMEZONE}
 JWT_SECRET=${JWT_SECRET}
 
-# Optional: Single Sign-On über Microsoft Entra ID (siehe docs/sso-entra-id.md).
-# Werte eintragen und Dienst neu starten; das Frontend benötigt zusätzlich
-# client/.env (VITE_ENTRA_*) und einen erneuten Build bzw. Skript-Lauf.
-# ENTRA_CLIENT_ID=
-# ENTRA_TENANT_ID=
-# ENTRA_AUTO_CREATE=
+# Single Sign-On über Microsoft Entra ID wird im Admin-Bereich konfiguriert
+# (Admin -> Anmeldung (SSO)) – hier ist dafür nichts einzutragen.
+# Siehe docs/sso-entra-id.md. Die folgenden Variablen sind nur ein Fallback
+# für bestehende Installationen; Admin-Einstellungen haben Vorrang.
 ${ENTRA_BLOCK}
 EOF
 chmod 600 "$ENV_FILE"

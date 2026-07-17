@@ -62,8 +62,22 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/menu-import/preview` | 🔑 | Speisekarte einer externen Seite auslesen (Lieferando oder Gastromia, siehe [speisekarten-import.md](speisekarten-import.md)). Body: `{url}` → `{provider, restaurantName, items[], warnings[]}` (noch ohne Speichern) |
 | PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`) |
 | DELETE | `/menu-items/:id` | 🔑 | Gericht löschen; bereits bestellte Gerichte werden deaktiviert |
-| GET | `/settings` | 🔑 | Standard-Abstimmungszeiten |
-| PUT | `/settings` | 🔑 | Body: `{defaultPhase1Time: "10:30", defaultPhase2Time: "11:45"}` |
+| GET | `/settings` | 🔑 | Standard-Abstimmungszeiten und Organisator-Modus |
+| PUT | `/settings` | 🔑 | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode, organizerAssignMinutes}` |
+| GET | `/sso/settings` | 🔑 | SSO-Konfiguration (Client-/Tenant-ID, Verbundanmeldung) |
+| PUT | `/sso/settings` | 🔑 | SSO speichern. Body: `{enabled, autoRedirect, clientId, tenantId, ficIssuer, ficSubject, ficAudience}` |
+| POST | `/sso/test` | 🔑 | Verbindungstest: holt per Verbundanmeldeinformation ein Token von Entra ID → `{ok, message}` |
+
+## SSO (Microsoft Entra ID)
+
+Details siehe [sso-entra-id.md](sso-entra-id.md).
+
+| Methode | Pfad | Rolle | Beschreibung |
+| --- | --- | :-: | --- |
+| POST | `/auth/sso` | 🔓 | ID-Token aus dem MSAL-Login gegen App-JWT eintauschen. Body: `{idToken}` |
+| GET | `/sso/config` | 🔓 | Laufzeit-Konfiguration für den Login-Button (`{enabled, clientId, tenantId, autoRedirect}`) |
+| GET | `/sso/jwks` | 🔓 | Öffentliche Schlüssel des Portals – Entra ID prüft darüber die Client-Assertion der Verbundanmeldung |
+| GET | `/.well-known/openid-configuration` | 🔓 | OIDC-Discovery des Portals (Issuer/JWKS) für die Verbundanmeldeinformation |
 
 ## Beispiele
 

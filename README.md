@@ -75,7 +75,10 @@ Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 Frontend `client/.env` (Vorlagen: `*.env.example`).
 
 **Single Sign-On (optional):** Anmeldung über Microsoft Entra ID (Azure AD)
-per MSAL – Einrichtung und benötigte Azure-Werte siehe
+per MSAL – ohne Client-Secret, über eine **Verbundanmeldeinformation**
+(Federated Identity Credential). Die Konfiguration (Client-ID, Tenant-ID,
+Verbundanmeldung) erfolgt direkt in der App unter **Admin → Anmeldung (SSO)**
+inkl. „Verbindung testen"; Einrichtung und benötigte Azure-Werte siehe
 [docs/sso-entra-id.md](docs/sso-entra-id.md). Ohne Konfiguration bleibt die
 lokale Anmeldung aktiv. Dark Mode und Branding (Logo, Favicon, Farbschema)
 konfiguriert der Admin direkt in der App unter **Design**.
