@@ -74,6 +74,16 @@ Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 (Standard `Europe/Berlin`). Der Server lädt zusätzlich `server/.env`, das
 Frontend `client/.env` (Vorlagen: `*.env.example`).
 
+**HTTPS/TLS (empfohlen):** Der Server liefert unverschlüsseltes HTTP aus und
+sollte in Produktion **hinter einem TLS-terminierenden Reverse-Proxy**
+(nginx, Caddy, Traefik o. Ä.) betrieben werden. Der Proxy muss
+`X-Forwarded-Proto` setzen – dann sendet die App automatisch den
+`Strict-Transport-Security`-Header (HSTS) und erkennt HTTPS korrekt. Die Zahl
+der vertrauenswürdigen Proxy-Hops lässt sich über `TRUST_PROXY_HOPS` (Standard 1)
+anpassen. Ein Betrieb ohne TLS ist nur in abgeschotteten internen Netzen
+vertretbar. Sicherheits-Header (CSP, X-Frame-Options, nosniff, Referrer-Policy)
+setzt die App selbst.
+
 **Single Sign-On (optional):** Anmeldung über Microsoft Entra ID (Azure AD)
 per MSAL – ohne Client-Secret, über eine **Verbundanmeldeinformation**
 (Federated Identity Credential). Die Konfiguration (Client-ID, Tenant-ID,

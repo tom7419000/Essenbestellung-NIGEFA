@@ -317,6 +317,10 @@ echo "  Neu starten       :  systemctl restart ${SERVICE_NAME}"
 echo "  Konfiguration     :  ${ENV_FILE}"
 echo "  Programmdaten     :  ${INSTALL_DIR}"
 echo
+warn "Empfehlung: In Produktion einen TLS-Reverse-Proxy (nginx/Caddy/Traefik)"
+warn "vorschalten, der HTTPS terminiert und X-Forwarded-Proto setzt. Die App"
+warn "sendet dann automatisch HSTS. Ohne TLS nur in internen Netzen betreiben."
+echo
 if $SEEDED; then
   echo "  Demo-Anmeldedaten (Benutzername / Passwort):"
   echo "    admin / admin123      (Administrator)"
