@@ -19,7 +19,11 @@ export const JWT_SECRET = loadSecret();
 export const TOKEN_TTL = '12h';
 
 export function signToken(user) {
-  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+  // tv = token_version: erlaubt serverseitige Invalidierung (Logout,
+  // Passwortänderung, Deaktivierung) durch Hochzählen in der Datenbank.
+  return jwt.sign({ sub: user.id, tv: user.token_version ?? 0 }, JWT_SECRET, {
+    expiresIn: TOKEN_TTL,
+  });
 }
 
 export function sanitizeUser(u) {
@@ -46,8 +50,18 @@ export function requireAuth(req, res, next) {
   if (!user || !user.is_active) {
     return res.status(401).json({ message: 'Konto nicht gefunden oder deaktiviert.' });
   }
+  // Token-Version muss zum aktuellen Stand passen (M2): nach Logout,
+  // Passwortänderung oder Deaktivierung sind alte Tokens ungültig.
+  if ((payload.tv ?? 0) !== (user.token_version ?? 0)) {
+    return res.status(401).json({ message: 'Sitzung abgelaufen. Bitte neu anmelden.' });
+  }
   req.user = user;
   next();
+}
+
+// Alle Sitzungen eines Benutzers ungültig machen (Token-Version hochzählen).
+export function bumpTokenVersion(userId) {
+  db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(userId);
 }
 
 export function requireAdmin(req, res, next) {

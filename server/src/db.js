@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   is_active     INTEGER NOT NULL DEFAULT 1,
+  token_version INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -155,6 +156,15 @@ const migrations = [
     up() {
       if (!columnExists('orders', 'paid')) {
         db.exec('ALTER TABLE orders ADD COLUMN paid INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+  },
+  {
+    version: 5,
+    name: 'users.token_version (Token-Invalidierung bei Logout/Passwortänderung)',
+    up() {
+      if (!columnExists('users', 'token_version')) {
+        db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0');
       }
     },
   },

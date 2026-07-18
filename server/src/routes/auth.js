@@ -3,7 +3,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
-import { requireAuth, sanitizeUser, signToken } from '../auth.js';
+import { bumpTokenVersion, requireAuth, sanitizeUser, signToken } from '../auth.js';
 import { getSsoConfig } from '../sso.js';
 import { rateLimit } from '../rateLimit.js';
 
@@ -35,6 +35,13 @@ router.post('/login', loginLimiter, (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: sanitizeUser(req.user) });
+});
+
+// Abmelden: macht alle Sitzungen dieses Benutzers ungültig (M2). Ein danach
+// noch vorhandenes/gestohlenes Token ist damit serverseitig unbrauchbar.
+router.post('/logout', requireAuth, (req, res) => {
+  bumpTokenVersion(req.user.id);
+  res.json({ ok: true });
 });
 
 // ---------- Single Sign-On über Microsoft Entra ID ----------
@@ -131,11 +138,14 @@ router.post('/change-password', passwordLimiter, requireAuth, (req, res) => {
   if (!bcrypt.compareSync(String(oldPassword || ''), req.user.password_hash)) {
     return res.status(400).json({ message: 'Das aktuelle Passwort ist falsch.' });
   }
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
+  // Passwortänderung macht alte Tokens ungültig; die aktuelle Sitzung erhält
+  // ein frisches Token, damit sie nicht abgemeldet wird.
+  db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?').run(
     bcrypt.hashSync(String(newPassword), 10),
     req.user.id
   );
-  res.json({ ok: true });
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  res.json({ ok: true, token: signToken(updated) });
 });
 
 export default router;

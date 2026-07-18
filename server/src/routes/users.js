@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
-import { requireAuth, requireAdmin, sanitizeUser } from '../auth.js';
+import { bumpTokenVersion, requireAuth, requireAdmin, sanitizeUser } from '../auth.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -68,10 +68,12 @@ router.put('/:id', (req, res) => {
     user.id
   );
   if (password) {
+    // Passwort-Reset durch Admin macht bestehende Sitzungen des Nutzers ungültig.
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
       bcrypt.hashSync(String(password), 10),
       user.id
     );
+    bumpTokenVersion(user.id);
   }
   res.json({ user: sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)) });
 });

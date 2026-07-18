@@ -87,6 +87,9 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     const wasSso = localStorage.getItem(SSO_FLAG_KEY) === '1';
+    // Serverseitig alle Sitzungen ungültig machen (best-effort, vor dem
+    // lokalen Verwerfen des Tokens, damit die Anfrage noch autorisiert ist).
+    api('/auth/logout', { method: 'POST' }).catch(() => {});
     clearToken();
     localStorage.removeItem(SSO_FLAG_KEY);
     setUser(null);
