@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../auth.js';
+import { auditLog } from '../audit.js';
 import {
   DEFAULT_FIC_AUDIENCE,
   DEFAULT_FIC_SUBJECT,
@@ -75,6 +76,8 @@ router.put('/settings', requireAuth, requireAdmin, (req, res) => {
     ficAudience: String(body.ficAudience ?? '').trim(),
   });
   const cfg = getSsoConfig();
+  // Keine ID-Werte protokollieren – nur, wer wann was am Aktivstatus geändert hat.
+  auditLog('sso_config_changed', req, { enabled: cfg.enabled, autoRedirect: cfg.autoRedirect });
   res.json({ ...cfg, defaults: { ficSubject: DEFAULT_FIC_SUBJECT, ficAudience: DEFAULT_FIC_AUDIENCE } });
 });
 

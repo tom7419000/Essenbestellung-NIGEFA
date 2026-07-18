@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
 import { bumpTokenVersion, requireAuth, requireAdmin, sanitizeUser } from '../auth.js';
+import { auditLog } from '../audit.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -32,6 +33,7 @@ router.post('/', (req, res) => {
         role === 'admin' ? 'admin' : 'user'
       );
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+    auditLog('user_created', req, { targetId: user.id, targetUsername: user.username, role: user.role });
     res.status(201).json({ user: sanitizeUser(user) });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {
@@ -75,6 +77,13 @@ router.put('/:id', (req, res) => {
     );
     bumpTokenVersion(user.id);
   }
+  auditLog('user_updated', req, {
+    targetId: user.id,
+    targetUsername: user.username,
+    roleChanged: newRole !== user.role,
+    activeChanged: newActive !== user.is_active,
+    passwordReset: Boolean(password),
+  });
   res.json({ user: sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)) });
 });
 
@@ -86,6 +95,7 @@ router.delete('/:id', (req, res) => {
   }
   // Stimmen und Bestellungen des Benutzers werden mitgelöscht (ON DELETE CASCADE).
   db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+  auditLog('user_deleted', req, { targetId: user.id, targetUsername: user.username });
   res.json({ ok: true });
 });
 

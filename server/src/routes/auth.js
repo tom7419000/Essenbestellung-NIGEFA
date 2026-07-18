@@ -6,6 +6,7 @@ import { db } from '../db.js';
 import { bumpTokenVersion, requireAuth, sanitizeUser, signToken } from '../auth.js';
 import { getSsoConfig } from '../sso.js';
 import { rateLimit } from '../rateLimit.js';
+import { auditLog } from '../audit.js';
 
 const router = Router();
 
@@ -25,11 +26,14 @@ router.post('/login', loginLimiter, (req, res) => {
   }
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username).trim());
   if (!user || !bcrypt.compareSync(String(password), user.password_hash)) {
+    auditLog('login_failed', req, { username: String(username).trim().slice(0, 64) });
     return res.status(401).json({ message: 'Ungültige Zugangsdaten.' });
   }
   if (!user.is_active) {
+    auditLog('login_denied_inactive', req, { userId: user.id, username: user.username });
     return res.status(403).json({ message: 'Dieses Konto ist deaktiviert.' });
   }
+  auditLog('login_success', req, { userId: user.id, username: user.username });
   res.json({ token: signToken(user), user: sanitizeUser(user) });
 });
 
@@ -41,6 +45,7 @@ router.get('/me', requireAuth, (req, res) => {
 // noch vorhandenes/gestohlenes Token ist damit serverseitig unbrauchbar.
 router.post('/logout', requireAuth, (req, res) => {
   bumpTokenVersion(req.user.id);
+  auditLog('logout', req);
   res.json({ ok: true });
 });
 
@@ -123,6 +128,7 @@ router.post('/sso', ssoLimiter, async (req, res) => {
     if (!user.is_active) {
       return res.status(403).json({ message: 'Dieses Konto ist deaktiviert.' });
     }
+    auditLog('sso_login', req, { userId: user.id, username: user.username });
     res.json({ token: signToken(user), user: sanitizeUser(user) });
   } catch (e) {
     console.error('SSO-Fehler:', e);
