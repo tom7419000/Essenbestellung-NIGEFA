@@ -134,6 +134,9 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | --- | --- |
 | 1 | `restaurants.has_menu` (Restaurants ohne Speisekarte; Bestandsdaten: „ja“, wenn Gerichte hinterlegt sind) |
 | 2 | `menu_items.category` und `menu_items.allergens` (Kategorien & Allergene, CSV-/URL-Import) |
+| 3 | `days.organizer_mode` und `days.organizer_source` (Organisator-Modi: manuell/freiwillig/zufällig) |
+| 4 | `orders.paid` (Bezahlt-Status) |
+| 5 | `users.token_version` (serverseitige Token-Invalidierung bei Logout/Passwortänderung) |
 
 ## Zeitzonen
 
