@@ -34,7 +34,10 @@ app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
 // Sicherheits-Header für alle Antworten (inkl. Fehlerseiten und statischem Frontend).
 app.use(securityHeaders);
 
-app.use(express.json());
+// Explizites Body-Limit (N3): begrenzt JSON-Requests und deckt zugleich den
+// CSV-Import (bis 512 KB) ab. Datei-Uploads laufen über eigene raw-Parser
+// mit eigenen Limits (branding.js).
+app.use(express.json({ limit: '1mb' }));
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);

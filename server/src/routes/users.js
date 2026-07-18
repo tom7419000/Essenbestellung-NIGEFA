@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
-import { bumpTokenVersion, requireAuth, requireAdmin, sanitizeUser } from '../auth.js';
+import { bumpTokenVersion, passwordError, requireAuth, requireAdmin, sanitizeUser } from '../auth.js';
 import { auditLog } from '../audit.js';
 
 const router = Router();
@@ -20,9 +20,8 @@ router.post('/', (req, res) => {
   if (!displayName || !String(displayName).trim()) {
     return res.status(400).json({ message: 'Bitte einen Anzeigenamen angeben.' });
   }
-  if (!password || String(password).length < 6) {
-    return res.status(400).json({ message: 'Passwort: mindestens 6 Zeichen.' });
-  }
+  const pwErr = passwordError(password);
+  if (pwErr) return res.status(400).json({ message: pwErr });
   try {
     const info = db
       .prepare('INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)')
@@ -48,8 +47,9 @@ router.put('/:id', (req, res) => {
   if (!user) return res.status(404).json({ message: 'Benutzer nicht gefunden.' });
 
   const { displayName, role, isActive, password } = req.body || {};
-  if (password !== undefined && password !== '' && String(password).length < 6) {
-    return res.status(400).json({ message: 'Passwort: mindestens 6 Zeichen.' });
+  if (password !== undefined && password !== '') {
+    const pwErr = passwordError(password);
+    if (pwErr) return res.status(400).json({ message: pwErr });
   }
   const newRole = role === undefined ? user.role : role === 'admin' ? 'admin' : 'user';
   const newActive = isActive === undefined ? user.is_active : isActive ? 1 : 0;

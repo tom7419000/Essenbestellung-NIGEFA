@@ -196,7 +196,7 @@ export default function UsersAdmin() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
-              minLength={6}
+              minLength={8}
               autoComplete="new-password"
             />
           </label>

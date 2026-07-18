@@ -62,6 +62,18 @@ export function parsePriceToCents(raw) {
   return Math.round(value * 100);
 }
 
+// Schutz vor CSV-/Formel-Injection (N4). MUSS für JEDES künftige Exportieren
+// von (nutzerkontrollierten) Werten in eine CSV verwendet werden: Beginnt ein
+// Feld mit einem Steuerzeichen, das Tabellenkalkulationen als Formel
+// interpretieren (= + - @, Tab, CR), wird ein Apostroph vorangestellt und der
+// Wert bei Bedarf in Anführungszeichen gesetzt.
+export function escapeCsvField(value) {
+  let s = String(value ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  if (/[";,\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 const HEADER_ALIASES = {
   kategorie: 'category',
   category: 'category',

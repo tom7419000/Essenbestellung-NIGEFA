@@ -26,6 +26,16 @@ export function signToken(user) {
   });
 }
 
+export const MIN_PASSWORD_LENGTH = 8;
+
+// Einheitliche Passwort-Policy (N1). Leerer Rückgabewert = gültig.
+export function passwordError(pw) {
+  if (!pw || String(pw).length < MIN_PASSWORD_LENGTH) {
+    return `Passwort: mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`;
+  }
+  return null;
+}
+
 export function sanitizeUser(u) {
   return {
     id: u.id,

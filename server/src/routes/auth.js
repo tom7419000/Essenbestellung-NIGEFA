@@ -3,7 +3,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
-import { bumpTokenVersion, requireAuth, sanitizeUser, signToken } from '../auth.js';
+import { bumpTokenVersion, passwordError, requireAuth, sanitizeUser, signToken } from '../auth.js';
 import { getSsoConfig } from '../sso.js';
 import { rateLimit } from '../rateLimit.js';
 import { auditLog } from '../audit.js';
@@ -30,8 +30,11 @@ router.post('/login', loginLimiter, (req, res) => {
     return res.status(401).json({ message: 'Ungültige Zugangsdaten.' });
   }
   if (!user.is_active) {
+    // Einheitliche Antwort (N2): nicht verraten, dass Benutzer/Passwort
+    // korrekt waren, das Konto aber deaktiviert ist. Server-Log dokumentiert
+    // den Grund weiterhin.
     auditLog('login_denied_inactive', req, { userId: user.id, username: user.username });
-    return res.status(403).json({ message: 'Dieses Konto ist deaktiviert.' });
+    return res.status(401).json({ message: 'Ungültige Zugangsdaten.' });
   }
   auditLog('login_success', req, { userId: user.id, username: user.username });
   res.json({ token: signToken(user), user: sanitizeUser(user) });
@@ -138,9 +141,8 @@ router.post('/sso', ssoLimiter, async (req, res) => {
 
 router.post('/change-password', passwordLimiter, requireAuth, (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
-  if (!newPassword || String(newPassword).length < 6) {
-    return res.status(400).json({ message: 'Neues Passwort: mindestens 6 Zeichen.' });
-  }
+  const pwErr = passwordError(newPassword);
+  if (pwErr) return res.status(400).json({ message: `Neues ${pwErr}` });
   if (!bcrypt.compareSync(String(oldPassword || ''), req.user.password_hash)) {
     return res.status(400).json({ message: 'Das aktuelle Passwort ist falsch.' });
   }
