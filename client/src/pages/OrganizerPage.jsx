@@ -259,8 +259,18 @@ export default function OrganizerPage() {
                     {detail.orders.map((o) => (
                       <tr key={o.id} className={o.status === 'storniert' ? 'row-cancelled' : ''}>
                         <td>{o.userName}</td>
-                        <td>{o.itemName || 'Unbekanntes Gericht'}</td>
-                        <td className="num">{fmtPrice(o.priceCents)}</td>
+                        <td>
+                          {o.items && o.items.length > 0 ? (
+                            <ul className="order-item-list">
+                              {o.items.map((it, i) => (
+                                <li key={i}>{it.itemName || 'Unbekanntes Gericht'}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            'Unbekanntes Gericht'
+                          )}
+                        </td>
+                        <td className="num">{fmtPrice(o.totalCents)}</td>
                         <td className="muted">{o.note || '–'}</td>
                         <td>
                           <select

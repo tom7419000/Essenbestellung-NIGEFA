@@ -16,8 +16,10 @@ automatisch das Restaurant mit den meisten Stimmen (bei Gleichstand die zuerst g
 Option).
 
 **Phase 2 – Essensauswahl:** Direkt im Anschluss wird die Speisekarte des Gewinners
-freigeschaltet. Bis zum Bestellschluss wählt jeder sein Gericht und kann eine Bemerkung
-hinterlassen („ohne Zwiebeln“). Danach ist der Tag abgeschlossen.
+freigeschaltet. Bis zum Bestellschluss wählt jeder **ein oder mehrere Gerichte**
+(z. B. Vorspeise, Hauptgang und Beilage) und kann eine Bemerkung hinterlassen
+(„ohne Zwiebeln“); die Bestellsumme ergibt sich aus allen gewählten Gerichten.
+Danach ist der Tag abgeschlossen.
 
 **Organisation:** Der für den Tag bestimmte Organisator sieht die vollständige
 Bestellübersicht – als nach Gerichten gruppierte Sammelbestellung mit Summen und als

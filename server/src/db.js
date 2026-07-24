@@ -95,6 +95,15 @@ CREATE TABLE IF NOT EXISTS orders (
   UNIQUE (day_id, user_id)
 );
 
+-- Einzelpositionen einer Bestellung (Mehrfachauswahl: Vorspeise + Hauptgang + …).
+-- Eine Bestellung (orders) je Person und Tag bündelt mehrere Gerichte.
+CREATE TABLE IF NOT EXISTS order_items (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id     INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE SET NULL,
+  UNIQUE (order_id, menu_item_id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -104,6 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_votes_day ON restaurant_votes(day_id);
 CREATE INDEX IF NOT EXISTS idx_orders_day ON orders(day_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 `;
 
 function columnExists(table, column) {
@@ -196,6 +206,22 @@ const migrations = [
       if (!columnExists('menu_items', 'weekdays')) {
         db.exec("ALTER TABLE menu_items ADD COLUMN weekdays TEXT NOT NULL DEFAULT ''");
       }
+    },
+  },
+  {
+    version: 9,
+    name: 'order_items (Mehrfachauswahl je Bestellung)',
+    up() {
+      db.exec(`CREATE TABLE IF NOT EXISTS order_items (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id     INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE SET NULL,
+        UNIQUE (order_id, menu_item_id)
+      )`);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)');
+      // Bestehende Einzelbestellungen als erste Position übernehmen.
+      db.exec(`INSERT OR IGNORE INTO order_items (order_id, menu_item_id)
+               SELECT id, menu_item_id FROM orders WHERE menu_item_id IS NOT NULL`);
     },
   },
 ];

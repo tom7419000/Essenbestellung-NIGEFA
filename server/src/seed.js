@@ -86,7 +86,7 @@ const burger = upsertRestaurant(
 const cheeseburger = upsertItem(burger, 'Classic Cheeseburger', 'Rind, Cheddar, Salat, Tomate', 1050, 'Burger');
 const bbq = upsertItem(burger, 'BBQ Bacon Burger', 'Rind, Bacon, BBQ-Sauce, Röstzwiebeln', 1200, 'Burger');
 const veggie = upsertItem(burger, 'Veggie Burger', 'Gemüse-Patty, Avocado-Creme', 980, 'Burger');
-upsertItem(burger, 'Süßkartoffel-Pommes', 'Mit Sour Cream', 490, 'Beilagen');
+const suessppommes = upsertItem(burger, 'Süßkartoffel-Pommes', 'Mit Sour Cream', 490, 'Beilagen');
 
 const salat = upsertRestaurant(
   'Salatwerk',
@@ -130,9 +130,18 @@ insertVote.run(yDay, clara, pizzeria);
 const insertOrder = db.prepare(
   `INSERT INTO orders (day_id, user_id, menu_item_id, note, status, paid) VALUES (?, ?, ?, ?, 'geliefert', ?)`
 );
-insertOrder.run(yDay, anna, bbq, '', 1);
-insertOrder.run(yDay, ben, cheeseburger, 'ohne Gurke', 1);
-insertOrder.run(yDay, clara, veggie, 'Dressing extra', 0);
+const insertOrderItem = db.prepare(
+  'INSERT INTO order_items (order_id, menu_item_id) VALUES (?, ?)'
+);
+// Mehrere Gerichte je Bestellung möglich (menu_item_id = erste Position).
+function seedOrder(dayId, userId, itemIds, note, paid) {
+  const info = insertOrder.run(dayId, userId, itemIds[0], note, paid);
+  for (const id of itemIds) insertOrderItem.run(info.lastInsertRowid, id);
+}
+seedOrder(yDay, anna, [bbq], '', 1);
+// Beispiel für eine Mehrfach-Bestellung: Burger + Beilage.
+seedOrder(yDay, ben, [cheeseburger, suessppommes], 'ohne Gurke', 1);
+seedOrder(yDay, clara, [veggie], 'Dressing extra', 0);
 
 // --- Heute: laufender Tag in Phase 1 ---
 const today = todayStr();

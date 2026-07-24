@@ -40,9 +40,13 @@ export default function MyOrdersPage() {
                   <tr key={o.id}>
                     <td>{fmtDateShort(o.date)}</td>
                     <td>{o.restaurantName || '–'}</td>
-                    <td>{o.itemName || 'Unbekanntes Gericht'}</td>
+                    <td>
+                      {o.items && o.items.length > 0
+                        ? o.items.map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')
+                        : 'Unbekanntes Gericht'}
+                    </td>
                     <td className="muted">{o.note || '–'}</td>
-                    <td className="num">{fmtPrice(o.priceCents)}</td>
+                    <td className="num">{fmtPrice(o.totalCents)}</td>
                     <td>
                       <span className={`badge order-${o.status}`}>{statusLabel(o.status)}</span>
                     </td>

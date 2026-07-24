@@ -57,34 +57,49 @@ function menuOf(restaurantId, weekday = null) {
     .map((it) => ({ ...it, weekdays: parseWeekdayCsv(it.weekdays) }));
 }
 
+// Einzelpositionen einer Bestellung (Mehrfachauswahl). Preis/Name werden live
+// aus menu_items gelesen; gelöschte Gerichte erscheinen als „Unbekanntes Gericht".
+function itemsOfOrder(orderId) {
+  return db
+    .prepare(
+      `SELECT oi.menu_item_id AS menuItemId, mi.name AS itemName, mi.price_cents AS priceCents,
+              mi.category AS category
+       FROM order_items oi
+       LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+       WHERE oi.order_id = ?
+       ORDER BY mi.category COLLATE NOCASE, mi.name COLLATE NOCASE`
+    )
+    .all(orderId);
+}
+
+function sumItems(items) {
+  return items.reduce((s, it) => (it.priceCents != null ? s + it.priceCents : s), 0);
+}
+
 function myOrderOf(dayId, userId) {
-  return (
-    db
-      .prepare(
-        `SELECT o.id, o.menu_item_id AS menuItemId, o.note, o.status,
-                mi.name AS itemName, mi.price_cents AS priceCents
-         FROM orders o
-         LEFT JOIN menu_items mi ON mi.id = o.menu_item_id
-         WHERE o.day_id = ? AND o.user_id = ?`
-      )
-      .get(dayId, userId) || null
-  );
+  const order = db
+    .prepare('SELECT id, note, status FROM orders WHERE day_id = ? AND user_id = ?')
+    .get(dayId, userId);
+  if (!order) return null;
+  const items = itemsOfOrder(order.id);
+  return { id: order.id, note: order.note, status: order.status, items, totalCents: sumItems(items) };
 }
 
 function ordersOf(dayId) {
   return db
     .prepare(
       `SELECT o.id, o.user_id AS userId, u.display_name AS userName,
-              o.menu_item_id AS menuItemId, mi.name AS itemName, mi.price_cents AS priceCents,
               o.note, o.status, o.paid, o.updated_at AS updatedAt
        FROM orders o
        JOIN users u ON u.id = o.user_id
-       LEFT JOIN menu_items mi ON mi.id = o.menu_item_id
        WHERE o.day_id = ?
        ORDER BY u.display_name COLLATE NOCASE`
     )
     .all(dayId)
-    .map((o) => ({ ...o, paid: !!o.paid }));
+    .map((o) => {
+      const items = itemsOfOrder(o.id);
+      return { ...o, paid: !!o.paid, items, totalCents: sumItems(items) };
+    });
 }
 
 function isOrganizerOrAdmin(user, day) {
@@ -179,6 +194,23 @@ daysRouter.delete('/:id/vote', (req, res) => {
   res.json({ ok: true });
 });
 
+// Bestellung (Kopf) anlegen/aktualisieren und die Positionen ersetzen.
+const placeOrderTx = db.transaction((dayId, userId, itemIds, note) => {
+  db.prepare(
+    `INSERT INTO orders (day_id, user_id, menu_item_id, note) VALUES (?, ?, ?, ?)
+     ON CONFLICT (day_id, user_id)
+     DO UPDATE SET menu_item_id = excluded.menu_item_id, note = excluded.note,
+                   status = 'eingegangen', updated_at = datetime('now')`
+  ).run(dayId, userId, itemIds[0], note);
+  const order = db
+    .prepare('SELECT id FROM orders WHERE day_id = ? AND user_id = ?')
+    .get(dayId, userId);
+  db.prepare('DELETE FROM order_items WHERE order_id = ?').run(order.id);
+  const ins = db.prepare('INSERT OR IGNORE INTO order_items (order_id, menu_item_id) VALUES (?, ?)');
+  for (const id of itemIds) ins.run(order.id, id);
+  return order.id;
+});
+
 daysRouter.post('/:id/order', (req, res) => {
   let day = getDay(req.params.id);
   if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
@@ -195,25 +227,35 @@ daysRouter.post('/:id/order', (req, res) => {
       message: 'Für dieses Restaurant ist keine Speisekarte hinterlegt – bitte individuell bestellen.',
     });
   }
-  const { menuItemId, note } = req.body || {};
-  const item = db
-    .prepare('SELECT * FROM menu_items WHERE id = ? AND is_active = 1')
-    .get(menuItemId);
-  if (!item || item.restaurant_id !== day.winning_restaurant_id) {
-    return res.status(400).json({ message: 'Bitte ein Gericht des Gewinner-Restaurants wählen.' });
+  const body = req.body || {};
+  // Mehrfachauswahl: menuItemIds[] (mehrere Gerichte). Einzelnes menuItemId
+  // wird weiterhin akzeptiert (Abwärtskompatibilität).
+  const rawIds = Array.isArray(body.menuItemIds)
+    ? body.menuItemIds
+    : body.menuItemId != null
+      ? [body.menuItemId]
+      : [];
+  const ids = [...new Set(rawIds.map(Number))].filter(Number.isInteger);
+  if (ids.length === 0) {
+    return res.status(400).json({ message: 'Bitte mindestens ein Gericht wählen.' });
   }
-  // Tagesessen sind nur an ihren Wochentagen bestellbar (serverseitige Prüfung).
-  if (!weekdaysAllow(item.weekdays, isoWeekday(day.date))) {
-    return res
-      .status(409)
-      .json({ message: 'Dieses Tagesessen ist an diesem Wochentag nicht verfügbar.' });
+  if (ids.length > 20) {
+    return res.status(400).json({ message: 'Zu viele Gerichte in einer Bestellung.' });
   }
-  db.prepare(
-    `INSERT INTO orders (day_id, user_id, menu_item_id, note) VALUES (?, ?, ?, ?)
-     ON CONFLICT (day_id, user_id)
-     DO UPDATE SET menu_item_id = excluded.menu_item_id, note = excluded.note,
-                   status = 'eingegangen', updated_at = datetime('now')`
-  ).run(day.id, req.user.id, item.id, String(note || '').slice(0, 500));
+  const weekday = isoWeekday(day.date);
+  for (const id of ids) {
+    const item = db.prepare('SELECT * FROM menu_items WHERE id = ? AND is_active = 1').get(id);
+    if (!item || item.restaurant_id !== day.winning_restaurant_id) {
+      return res.status(400).json({ message: 'Bitte nur Gerichte des Gewinner-Restaurants wählen.' });
+    }
+    // Tagesessen sind nur an ihren Wochentagen bestellbar (serverseitige Prüfung).
+    if (!weekdaysAllow(item.weekdays, weekday)) {
+      return res
+        .status(409)
+        .json({ message: `„${item.name}" ist an diesem Wochentag nicht verfügbar.` });
+    }
+  }
+  placeOrderTx(day.id, req.user.id, ids, String(body.note || '').slice(0, 500));
   res.json({ order: myOrderOf(day.id, req.user.id) });
 });
 
@@ -286,34 +328,37 @@ daysRouter.get('/:id/full', (req, res) => {
   const restaurants = dayRestaurantsWithVotes(day.id);
   const orders = ordersOf(day.id);
 
+  // Sammelbestellung: je Gericht über alle (nicht stornierten) Bestellungen.
+  // Eine Person mit mehreren Gerichten zählt bei jedem ihrer Gerichte mit.
   const byItem = new Map();
   for (const o of orders) {
     if (o.status === 'storniert') continue;
-    const key = o.menuItemId ?? `deleted-${o.id}`;
-    const entry = byItem.get(key) || {
-      itemName: o.itemName || 'Unbekanntes Gericht',
-      priceCents: o.priceCents,
-      count: 0,
-      users: [],
-    };
-    entry.count += 1;
-    entry.users.push(o.userName);
-    byItem.set(key, entry);
+    for (const it of o.items) {
+      const key = it.menuItemId ?? `deleted-${it.itemName || '?'}`;
+      const entry = byItem.get(key) || {
+        itemName: it.itemName || 'Unbekanntes Gericht',
+        priceCents: it.priceCents,
+        count: 0,
+        users: [],
+      };
+      entry.count += 1;
+      entry.users.push(o.userName);
+      byItem.set(key, entry);
+    }
   }
   const summary = [...byItem.values()]
     .map((e) => ({ ...e, totalCents: e.priceCents != null ? e.priceCents * e.count : null }))
     .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName, 'de'));
-  const totalCents = orders
-    .filter((o) => o.status !== 'storniert' && o.priceCents != null)
-    .reduce((sum, o) => sum + o.priceCents, 0);
 
-  // Bezahlt-Übersicht (stornierte Bestellungen zählen nicht mit)
+  // Bezahlt-Übersicht (stornierte Bestellungen zählen nicht mit); Beträge je
+  // Bestellung = Summe ihrer Gerichte.
   const active = orders.filter((o) => o.status !== 'storniert');
+  const totalCents = active.reduce((sum, o) => sum + o.totalCents, 0);
   const paidStats = {
     paidCount: active.filter((o) => o.paid).length,
     totalCount: active.length,
-    paidCents: active.filter((o) => o.paid && o.priceCents != null).reduce((s, o) => s + o.priceCents, 0),
-    openCents: active.filter((o) => !o.paid && o.priceCents != null).reduce((s, o) => s + o.priceCents, 0),
+    paidCents: active.filter((o) => o.paid).reduce((s, o) => s + o.totalCents, 0),
+    openCents: active.filter((o) => !o.paid).reduce((s, o) => s + o.totalCents, 0),
   };
 
   res.json({

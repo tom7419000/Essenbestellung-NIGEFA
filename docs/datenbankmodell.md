@@ -20,7 +20,8 @@ erDiagram
     days ||--o{ restaurant_votes : "sammelt"
     days ||--o{ orders : "sammelt"
 
-    menu_items |o--o{ orders : "wird bestellt"
+    orders ||--o{ order_items : "enthält"
+    menu_items |o--o{ order_items : "wird bestellt"
 
     users {
         int id PK
@@ -83,10 +84,17 @@ erDiagram
         int id PK
         int day_id FK
         int user_id FK "eine Bestellung je Tag (UNIQUE)"
-        int menu_item_id FK
+        int menu_item_id FK "erste Position (Altbestand/Referenz)"
         text note "Bemerkung"
         text status "eingegangen | bestellt | geliefert | storniert"
+        int paid
         text updated_at
+    }
+
+    order_items {
+        int id PK
+        int order_id FK
+        int menu_item_id FK "je Bestellung mehrere Gerichte (UNIQUE order_id+item)"
     }
 
     settings {
@@ -105,7 +113,8 @@ erDiagram
 | `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. `auto_created = 1` kennzeichnet Tage aus der automatischen Planung; sie bleiben normal (manuell) bearbeitbar. |
 | `day_restaurants` | Welche Restaurants an einem Tag zur Wahl stehen (`position` = Anzeige-Reihenfolge und Tie-Break bei Stimmengleichheit). |
 | `restaurant_votes` | Phase-1-Stimmen. `UNIQUE (day_id, user_id)` erzwingt eine Stimme pro Person und Tag; erneutes Abstimmen ändert die Stimme (Upsert). |
-| `orders` | Phase-2-Bestellungen. `UNIQUE (day_id, user_id)` erzwingt eine Bestellung pro Person und Tag; änderbar bis Bestellschluss. Status wird vom Organisator gepflegt. |
+| `orders` | Phase-2-Bestellungen (Kopf je Person und Tag). `UNIQUE (day_id, user_id)` erzwingt eine Bestellung pro Person und Tag; änderbar bis Bestellschluss. Status/Bezahlt werden vom Organisator gepflegt. `menu_item_id` hält aus Kompatibilitätsgründen die erste Position; maßgeblich sind die `order_items`. |
+| `order_items` | Einzelne Gerichte einer Bestellung – erlaubt die **Mehrfachauswahl** (z. B. Vorspeise + Hauptgang + Beilage). Preis/Name werden live aus `menu_items` gelesen; die Bestellsumme ist die Summe der Positionen. |
 | `settings` | Key-Value-Einstellungen: Standard-Abstimmungszeiten/-Organisator-Modus für neue Tage sowie die Konfiguration der automatischen Tagesplanung (`auto_plan_config`, JSON). |
 
 ## Statuslogik (Phasenübergänge)
@@ -145,6 +154,7 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 6 | `users.can_plan` (Berechtigung „Planung": Tagesplanung ohne weitere Admin-Rechte) |
 | 7 | `days.auto_created` (Kennzeichnung automatisch erzeugter Tage) |
 | 8 | `menu_items.weekdays` (Tagesessen: Bindung an Wochentage) |
+| 9 | `order_items` (Mehrfachauswahl je Bestellung; Altbestand aus `orders.menu_item_id` übernommen) |
 
 ## Zeitzonen
 

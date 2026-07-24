@@ -432,6 +432,15 @@ input:focus, select:focus, textarea:focus {
 .add-item-weekdays { display: flex; flex-direction: column; gap: 0.25rem; }
 .add-item-weekdays > span { font-size: 0.8rem; }
 .menu-item-weekdays { margin-left: 0.4rem; font-size: 0.72rem; vertical-align: middle; }
+.order-total-line {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 0.95rem;
+}
+.order-item-list { margin: 0; padding-left: 1.1rem; }
+.order-item-list li { line-height: 1.35; }
 
 .inline-select { flex-direction: row; align-items: center; gap: 0.5rem; }
 

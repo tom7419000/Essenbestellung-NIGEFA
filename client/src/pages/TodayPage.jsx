@@ -208,17 +208,35 @@ function WinnerBanner({ data }) {
 
 function OrderPanel({ data, reload }) {
   const { day, menu, myOrder } = data;
-  const [itemId, setItemId] = useState(myOrder?.menuItemId ?? null);
+  const [selectedIds, setSelectedIds] = useState(
+    () => new Set((myOrder?.items || []).map((i) => i.menuItemId).filter((x) => x != null))
+  );
   const [note, setNote] = useState(myOrder?.note ?? '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  function toggle(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const selectedTotal = menu
+    .filter((m) => selectedIds.has(m.id))
+    .reduce((s, m) => (m.priceCents != null ? s + m.priceCents : s), 0);
 
   async function save(e) {
     e.preventDefault();
     setBusy(true);
     setError('');
     try {
-      await api(`/days/${day.id}/order`, { method: 'POST', body: { menuItemId: itemId, note } });
+      await api(`/days/${day.id}/order`, {
+        method: 'POST',
+        body: { menuItemIds: [...selectedIds], note },
+      });
       await reload();
     } catch (err) {
       setError(err.message);
@@ -232,7 +250,7 @@ function OrderPanel({ data, reload }) {
     setError('');
     try {
       await api(`/days/${day.id}/order`, { method: 'DELETE' });
-      setItemId(null);
+      setSelectedIds(new Set());
       setNote('');
       await reload();
     } catch (err) {
@@ -249,11 +267,16 @@ function OrderPanel({ data, reload }) {
       </h2>
       {myOrder ? (
         <div className="notice success">
-          Deine Bestellung ist gespeichert: <b>{myOrder.itemName}</b>
+          Deine Bestellung ist gespeichert:{' '}
+          <b>{(myOrder.items || []).map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')}</b>
+          {myOrder.totalCents > 0 && <> · {fmtPrice(myOrder.totalCents)}</>}
           {myOrder.note && <> („{myOrder.note}“)</>}. Du kannst sie bis zum Bestellschluss ändern.
         </div>
       ) : (
-        <p className="muted">Wähle dein Gericht und gib optional eine Bemerkung an.</p>
+        <p className="muted">
+          Wähle ein oder mehrere Gerichte (z. B. Vorspeise, Hauptgang und Beilage) und gib optional
+          eine Bemerkung an.
+        </p>
       )}
       {error && <div className="alert">{error}</div>}
       <form onSubmit={save} className="stack">
@@ -262,12 +285,14 @@ function OrderPanel({ data, reload }) {
             <div key={category || 'ohne-kategorie'} className="menu-group">
               {category && <h3 className="menu-category">{category}</h3>}
               {items.map((item) => (
-                <label key={item.id} className={`menu-item${itemId === item.id ? ' selected' : ''}`}>
+                <label
+                  key={item.id}
+                  className={`menu-item${selectedIds.has(item.id) ? ' selected' : ''}`}
+                >
                   <input
-                    type="radio"
-                    name="menuItem"
-                    checked={itemId === item.id}
-                    onChange={() => setItemId(item.id)}
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => toggle(item.id)}
                   />
                   <span className="menu-item-name">
                     {item.name}
@@ -290,6 +315,12 @@ function OrderPanel({ data, reload }) {
             </div>
           ))}
         </div>
+        {selectedIds.size > 0 && (
+          <div className="order-total-line">
+            {selectedIds.size} {selectedIds.size === 1 ? 'Gericht' : 'Gerichte'} ausgewählt · Summe{' '}
+            <b>{fmtPrice(selectedTotal)}</b>
+          </div>
+        )}
         <label>
           Bemerkung (optional)
           <input
@@ -300,7 +331,7 @@ function OrderPanel({ data, reload }) {
           />
         </label>
         <div className="row">
-          <button className="btn btn-primary" disabled={busy || !itemId}>
+          <button className="btn btn-primary" disabled={busy || selectedIds.size === 0}>
             <FontAwesomeIcon icon={faCheck} />{' '}
             {myOrder ? 'Bestellung aktualisieren' : 'Verbindlich bestellen'}
           </button>
@@ -410,7 +441,9 @@ function ClosedPanel({ data }) {
       <h2>Bestellphase beendet</h2>
       {data.myOrder ? (
         <p>
-          Deine Bestellung: <b>{data.myOrder.itemName}</b> ({fmtPrice(data.myOrder.priceCents)})
+          Deine Bestellung:{' '}
+          <b>{(data.myOrder.items || []).map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')}</b>{' '}
+          ({fmtPrice(data.myOrder.totalCents)})
           {data.myOrder.note && <> – Bemerkung: „{data.myOrder.note}“</>} · Status:{' '}
           <span className={`badge order-${data.myOrder.status}`}>{statusLabel(data.myOrder.status)}</span>
         </p>

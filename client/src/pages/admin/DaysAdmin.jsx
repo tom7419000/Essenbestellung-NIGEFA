@@ -740,8 +740,12 @@ function DayDetail({ dayId }) {
               {detail.orders.map((o) => (
                 <tr key={o.id} className={o.status === 'storniert' ? 'row-cancelled' : ''}>
                   <td>{o.userName}</td>
-                  <td>{o.itemName || 'Unbekanntes Gericht'}</td>
-                  <td className="num">{fmtPrice(o.priceCents)}</td>
+                  <td>
+                    {o.items && o.items.length > 0
+                      ? o.items.map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')
+                      : 'Unbekanntes Gericht'}
+                  </td>
+                  <td className="num">{fmtPrice(o.totalCents)}</td>
                   <td className="muted">{o.note || '–'}</td>
                   <td>
                     <span className={`badge order-${o.status}`}>{statusLabel(o.status)}</span>

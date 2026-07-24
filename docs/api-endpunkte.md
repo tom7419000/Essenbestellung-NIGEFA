@@ -21,7 +21,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, Restaurants mit Stimmen, eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
 | POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. |
 | DELETE | `/days/:id/vote` | 👤 | Eigene Stimme zurückziehen (nur Phase 1) |
-| POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemId, note}`. Erneuter Aufruf ändert die Bestellung; das Gericht muss zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
+| POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemIds:[…], note}` (**Mehrfachauswahl**; einzelnes `menuItemId` weiter akzeptiert). Erneuter Aufruf ersetzt die Auswahl; alle Gerichte müssen zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
 | DELETE | `/days/:id/order` | 👤 | Eigene Bestellung löschen (nur Phase 2) |
 
 ## Organisator
@@ -99,10 +99,10 @@ curl -X POST http://localhost:3001/api/days/2/vote \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"restaurantId":1}'
 
-# Bestellen (Phase 2)
+# Bestellen (Phase 2) – mehrere Gerichte möglich
 curl -X POST http://localhost:3001/api/days/2/order \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"menuItemId":3,"note":"ohne Zwiebeln"}'
+  -d '{"menuItemIds":[3,7],"note":"ohne Zwiebeln"}'
 
 # Organisator: alle Bestellungen auf „bestellt“ setzen
 curl -X PATCH http://localhost:3001/api/days/2/orders-status \
