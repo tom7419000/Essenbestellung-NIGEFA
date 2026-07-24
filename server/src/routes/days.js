@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { requireAuth, requireAdmin, requirePlanner } from '../auth.js';
 import { ensureCurrent, resolveOpenDays } from '../dayLogic.js';
 import { todayStr } from '../util.js';
+import { generateAutoPlan, getAutoPlanConfig, setAutoPlanConfig } from '../autoPlan.js';
 
 export const ORDER_STATUS = ['eingegangen', 'bestellt', 'geliefert', 'storniert'];
 
@@ -23,6 +24,7 @@ function mapDay(d) {
     phase1Deadline: d.phase1_deadline,
     phase2Deadline: d.phase2_deadline,
     winningRestaurantId: d.winning_restaurant_id,
+    autoCreated: !!d.auto_created,
   };
 }
 
@@ -375,6 +377,24 @@ daysRouter.get('/', requirePlanner, (req, res) => {
     })),
     today: todayStr(),
   });
+});
+
+// ---------- Admin/Planung: Automatische Tagesplanung ----------
+// Vor den /:id-Routen definiert, damit „auto-plan" nicht als :id gedeutet wird.
+
+daysRouter.get('/auto-plan', requirePlanner, (req, res) => {
+  res.json({ config: getAutoPlanConfig() });
+});
+
+daysRouter.put('/auto-plan', requirePlanner, (req, res) => {
+  const { config, error } = setAutoPlanConfig(req.body);
+  if (error) return res.status(400).json({ message: error });
+  res.json({ config });
+});
+
+daysRouter.post('/auto-plan/run', requirePlanner, (req, res) => {
+  const summary = generateAutoPlan();
+  res.json(summary);
 });
 
 function validateDayInput(body, existingId = null) {

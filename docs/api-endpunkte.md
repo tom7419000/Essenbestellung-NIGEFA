@@ -47,6 +47,9 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/days` | 🗓️ | Tag anlegen. Body: `{date, organizerId, organizerMode, phase1Deadline, phase2Deadline, restaurantIds[]}` (Deadlines als ISO-Zeitstempel) |
 | PUT | `/days/:id` | 🗓️ | Tag ändern (gleicher Body). Status/Gewinner werden aus den neuen Deadlines neu berechnet. |
 | DELETE | `/days/:id` | 🗓️ | Tag inkl. Stimmen und Bestellungen löschen |
+| GET | `/days/auto-plan` | 🗓️ | Konfiguration der automatischen Tagesplanung (Mo–Fr) |
+| PUT | `/days/auto-plan` | 🗓️ | Konfiguration speichern. Body: `{enabled, daysAhead, organizerMode, phase1Time, phase2Time, weekdays:{1..5:{mode:"fest"\|"rotierend", restaurantIds[]}}, holidays[]}` |
+| POST | `/days/auto-plan/run` | 🗓️ | Fehlende Tage jetzt erzeugen → `{enabled, created[], skipped[]}` (bestehende Tage bleiben unberührt) |
 | GET | `/users/selectable` | 🗓️ | Aktive Benutzer (nur `id`, `displayName`) für die Organisator-Auswahl der Tagesplanung |
 | GET | `/users` | 🔑 | Benutzerliste |
 | POST | `/users` | 🔑 | Benutzer anlegen. Body: `{username, displayName, password, role}` (`role`: `user` \| `planung` \| `admin`) |

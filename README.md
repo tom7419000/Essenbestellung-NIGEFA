@@ -180,6 +180,12 @@ Befehl zur Wiederherstellung im Fehlerfall.
 - **Automatische Phasenwechsel:** Der Status eines Tages wird bei jedem Zugriff und
   zusätzlich alle 30 Sekunden aus den Deadlines abgeleitet; der Gewinner wird beim
   Übergang eingefroren. Kein Cron, keine externen Abhängigkeiten.
+- **Automatische Tagesplanung (Mo–Fr):** Optional legt die App Tage im Voraus an –
+  je Wochentag ein festes oder rotierendes Restaurant-Angebot, konfigurierbarer
+  Vorlauf, Wochenenden werden ausgelassen, Feiertage als Datumsliste pflegbar.
+  Die Erzeugung ist idempotent (bestehende Tage bleiben unangetastet und manuell
+  editierbar) und läuft beim Start sowie regelmäßig; Konfiguration unter
+  **Tagesplanung → Automatische Tagesplanung**.
 - **Live-Erlebnis im Frontend:** Die „Heute“-Seite pollt alle 15 Sekunden, der Countdown
   gleicht sich über `serverNow` mit der Server-Uhr ab und lädt beim Ablauf sofort neu –
   der Phasenwechsel erscheint ohne manuelles Neuladen.

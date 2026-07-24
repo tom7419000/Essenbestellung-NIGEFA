@@ -395,6 +395,24 @@ input:focus, select:focus, textarea:focus {
 }
 .restaurant-picker legend { font-size: 0.92rem; font-weight: 600; padding: 0 0.35rem; }
 
+.auto-weekdays { display: flex; flex-direction: column; gap: 0.9rem; }
+.auto-weekday {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem 0.8rem;
+  background: var(--surface-2, transparent);
+}
+.auto-weekday-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.auto-rotation-hint { margin: 0.5rem 0 0; font-size: 0.85rem; }
+.holidays-input { font-family: inherit; resize: vertical; min-height: 4.5rem; }
+
 .inline-select { flex-direction: row; align-items: center; gap: 0.5rem; }
 
 .input-price { width: 7.5rem; }
@@ -441,6 +459,7 @@ input:focus, select:focus, textarea:focus {
 
 .badge-admin { background: var(--accent-soft); color: var(--accent-dark); }
 .badge-plan { background: var(--blue-soft); color: var(--blue); }
+.badge-auto { background: var(--blue-soft); color: var(--blue); margin-left: 0.4rem; gap: 0.3rem; }
 .badge-ok { background: var(--green-soft); color: var(--green); }
 .badge-off { background: var(--gray-soft); color: var(--muted); }
 

@@ -1,16 +1,26 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faBolt,
   faCheck,
   faEye,
   faEyeSlash,
   faFloppyDisk,
   faPen,
   faPlus,
+  faRobot,
   faTrash,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
+
+const AUTO_WEEKDAYS = [
+  { n: 1, label: 'Montag' },
+  { n: 2, label: 'Dienstag' },
+  { n: 3, label: 'Mittwoch' },
+  { n: 4, label: 'Donnerstag' },
+  { n: 5, label: 'Freitag' },
+];
 import {
   DAY_STATUS,
   ORGANIZER_MODES,
@@ -282,6 +292,8 @@ export default function DaysAdmin() {
         </form>
       </div>
 
+      <AutoPlanCard restaurants={restaurants} onGenerated={loadDays} />
+
       <div className="card">
         <h2>Geplante Tage</h2>
         {days.length === 0 ? (
@@ -305,7 +317,14 @@ export default function DaysAdmin() {
               <tbody>
                 {days.map((d) => (
                   <tr key={d.id}>
-                    <td>{fmtDateShort(d.date)}</td>
+                    <td>
+                      {fmtDateShort(d.date)}
+                      {d.autoCreated && (
+                        <span className="badge badge-auto" title="Automatisch erstellt">
+                          <FontAwesomeIcon icon={faRobot} /> auto
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <span className={`badge status-${d.status}`}>{DAY_STATUS[d.status]}</span>
                     </td>
@@ -416,6 +435,229 @@ export default function DaysAdmin() {
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+function AutoPlanCard({ restaurants, onGenerated }) {
+  const [config, setConfig] = useState(null);
+  const [holidaysText, setHolidaysText] = useState('');
+  const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api('/days/auto-plan')
+      .then((d) => {
+        setConfig(d.config);
+        setHolidaysText((d.config.holidays || []).join('\n'));
+      })
+      .catch((e) => setError(e.message));
+  }, []);
+
+  function patch(p) {
+    setConfig((c) => ({ ...c, ...p }));
+  }
+  function setWeekday(n, wp) {
+    setConfig((c) => ({
+      ...c,
+      weekdays: { ...c.weekdays, [n]: { ...(c.weekdays[n] || {}), ...wp } },
+    }));
+  }
+  function toggleWdRestaurant(n, rid) {
+    const cur = config.weekdays[n]?.restaurantIds || [];
+    setWeekday(n, {
+      restaurantIds: cur.includes(rid) ? cur.filter((x) => x !== rid) : [...cur, rid],
+    });
+  }
+
+  async function persist() {
+    const holidays = holidaysText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const d = await api('/days/auto-plan', { method: 'PUT', body: { ...config, holidays } });
+    setConfig(d.config);
+    setHolidaysText((d.config.holidays || []).join('\n'));
+    return d.config;
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setError('');
+    setMsg('');
+    setBusy(true);
+    try {
+      await persist();
+      setMsg('Konfiguration gespeichert.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveAndRun() {
+    setError('');
+    setMsg('');
+    setBusy(true);
+    try {
+      await persist();
+      const r = await api('/days/auto-plan/run', { method: 'POST' });
+      if (!r.enabled) {
+        setMsg('Gespeichert. Die Automatik ist deaktiviert – es wurden keine Tage erzeugt.');
+      } else if (r.created.length === 0) {
+        setMsg('Gespeichert. Keine neuen Tage nötig – alle geplanten Tage existieren bereits.');
+      } else {
+        setMsg(`Gespeichert. ${r.created.length} Tag(e) erzeugt: ${r.created.join(', ')}.`);
+      }
+      await onGenerated?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error && !config) return <div className="card alert">{error}</div>;
+  if (!config) return <div className="card page-loading">Lädt …</div>;
+
+  const menuRestaurants = restaurants; // aktive Restaurants aus der Elternkomponente
+
+  return (
+    <div className="card">
+      <h2>
+        <FontAwesomeIcon icon={faRobot} /> Automatische Tagesplanung
+      </h2>
+      <p className="muted">
+        Legt werktags (Mo–Fr) automatisch Tage im Voraus an. Wochenenden werden ausgelassen,
+        Feiertage/Ausnahmen pflegst du unten als Datumsliste. Bereits geplante Tage bleiben
+        unangetastet und lassen sich weiterhin manuell bearbeiten.
+      </p>
+      {error && <div className="alert">{error}</div>}
+      {msg && <div className="notice">{msg}</div>}
+
+      <form className="stack" onSubmit={save}>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={config.enabled}
+            onChange={(e) => patch({ enabled: e.target.checked })}
+          />
+          Automatische Tagesplanung aktiv
+        </label>
+
+        <div className="form-grid">
+          <label>
+            Vorlauf (Tage im Voraus)
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={config.daysAhead}
+              onChange={(e) => patch({ daysAhead: Number(e.target.value) })}
+            />
+          </label>
+          <label>
+            Organisator-Modus
+            <select
+              value={config.organizerMode}
+              onChange={(e) => patch({ organizerMode: e.target.value })}
+            >
+              {ORGANIZER_MODES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Ende Restaurantwahl (Phase 1)
+            <input
+              type="time"
+              value={config.phase1Time}
+              onChange={(e) => patch({ phase1Time: e.target.value })}
+            />
+          </label>
+          <label>
+            Bestellschluss (Phase 2)
+            <input
+              type="time"
+              value={config.phase2Time}
+              onChange={(e) => patch({ phase2Time: e.target.value })}
+            />
+          </label>
+        </div>
+
+        <fieldset className="restaurant-picker">
+          <legend>Restaurants je Wochentag</legend>
+          {menuRestaurants.length === 0 && <p className="muted">Bitte zuerst Restaurants anlegen.</p>}
+          <div className="auto-weekdays">
+            {AUTO_WEEKDAYS.map((wd) => {
+              const wdCfg = config.weekdays[wd.n] || { mode: 'fest', restaurantIds: [] };
+              return (
+                <div key={wd.n} className="auto-weekday">
+                  <div className="auto-weekday-head">
+                    <strong>{wd.label}</strong>
+                    <label className="inline-select">
+                      Modus
+                      <select
+                        value={wdCfg.mode}
+                        onChange={(e) => setWeekday(wd.n, { mode: e.target.value })}
+                      >
+                        <option value="fest">fest (immer diese Auswahl)</option>
+                        <option value="rotierend">rotierend (reihum ein Restaurant)</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="checkbox-grid">
+                    {menuRestaurants.map((r) => (
+                      <label key={r.id} className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={(wdCfg.restaurantIds || []).includes(r.id)}
+                          onChange={() => toggleWdRestaurant(wd.n, r.id)}
+                        />
+                        {r.name}
+                        {!r.hasMenu && <span className="badge badge-off">ohne Speisekarte</span>}
+                      </label>
+                    ))}
+                  </div>
+                  {wdCfg.mode === 'rotierend' && (wdCfg.restaurantIds || []).length > 1 && (
+                    <p className="muted auto-rotation-hint">
+                      Rotiert je Woche in Auswahlreihenfolge durch:{' '}
+                      {wdCfg.restaurantIds
+                        .map((id) => menuRestaurants.find((r) => r.id === id)?.name)
+                        .filter(Boolean)
+                        .join(' → ')}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <label>
+          Feiertage / Ausnahmen (ein Datum je Zeile, JJJJ-MM-TT)
+          <textarea
+            className="holidays-input"
+            rows={4}
+            placeholder={'2026-12-24\n2026-12-25\n2026-12-31'}
+            value={holidaysText}
+            onChange={(e) => setHolidaysText(e.target.value)}
+          />
+        </label>
+
+        <div className="row">
+          <button className="btn btn-primary" disabled={busy}>
+            <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
+          </button>
+          <button type="button" className="btn" disabled={busy} onClick={saveAndRun}>
+            <FontAwesomeIcon icon={faBolt} /> Speichern &amp; jetzt erzeugen
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

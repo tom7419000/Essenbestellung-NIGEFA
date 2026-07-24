@@ -59,6 +59,7 @@ erDiagram
         text phase2_deadline "ISO-Zeitstempel (UTC)"
         text status "phase1 | phase2 | closed"
         int winning_restaurant_id FK
+        int auto_created "automatisch erzeugt (0/1)"
     }
 
     day_restaurants {
@@ -98,11 +99,11 @@ erDiagram
 | `users` | Benutzerkonten mit Rolle (`user`/`admin`) und dem additiven Flag `can_plan` (Berechtigung **„Planung"**: Tage anlegen/ändern/absagen und Planungs-Standardzeiten, aber keine Benutzer-/Restaurant-/Design-/SSO-Verwaltung). Nach außen erscheinen so drei Rollen: `user`, `planung`, `admin`. Die Organisator-Rolle ist keine globale Rolle, sondern eine **Zuweisung pro Tag** (`days.organizer_id`). |
 | `restaurants` | Stammdaten der Restaurants/Lieferdienste. Statt harter Löschung werden verwendete Restaurants deaktiviert (`is_active = 0`), damit die Historie erhalten bleibt. |
 | `menu_items` | Speisekarte je Restaurant, Preis in Cent (vermeidet Rundungsfehler). |
-| `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. |
+| `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. `auto_created = 1` kennzeichnet Tage aus der automatischen Planung; sie bleiben normal (manuell) bearbeitbar. |
 | `day_restaurants` | Welche Restaurants an einem Tag zur Wahl stehen (`position` = Anzeige-Reihenfolge und Tie-Break bei Stimmengleichheit). |
 | `restaurant_votes` | Phase-1-Stimmen. `UNIQUE (day_id, user_id)` erzwingt eine Stimme pro Person und Tag; erneutes Abstimmen ändert die Stimme (Upsert). |
 | `orders` | Phase-2-Bestellungen. `UNIQUE (day_id, user_id)` erzwingt eine Bestellung pro Person und Tag; änderbar bis Bestellschluss. Status wird vom Organisator gepflegt. |
-| `settings` | Key-Value-Einstellungen, aktuell die Standard-Abstimmungszeiten für neue Tage. |
+| `settings` | Key-Value-Einstellungen: Standard-Abstimmungszeiten/-Organisator-Modus für neue Tage sowie die Konfiguration der automatischen Tagesplanung (`auto_plan_config`, JSON). |
 
 ## Statuslogik (Phasenübergänge)
 
@@ -139,6 +140,7 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 4 | `orders.paid` (Bezahlt-Status) |
 | 5 | `users.token_version` (serverseitige Token-Invalidierung bei Logout/Passwortänderung) |
 | 6 | `users.can_plan` (Berechtigung „Planung": Tagesplanung ohne weitere Admin-Rechte) |
+| 7 | `days.auto_created` (Kennzeichnung automatisch erzeugter Tage) |
 
 ## Zeitzonen
 

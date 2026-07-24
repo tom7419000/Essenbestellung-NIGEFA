@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { initDb } from './db.js';
 import { resolveOpenDays } from './dayLogic.js';
+import { generateAutoPlan } from './autoPlan.js';
 import { securityHeaders } from './security.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
@@ -24,6 +25,21 @@ initDb();
 // Phasenwechsel finden auch ohne Benutzer-Traffic statt.
 resolveOpenDays();
 setInterval(resolveOpenDays, 30_000);
+
+// Automatische Tagesplanung (Mo–Fr) idempotent nachziehen: beim Start und
+// danach regelmäßig. Bestehende Tage werden nie überschrieben.
+function runAutoPlan() {
+  try {
+    const r = generateAutoPlan();
+    if (r.created.length) {
+      console.log(`[auto-plan] ${r.created.length} Tag(e) erzeugt: ${r.created.join(', ')}`);
+    }
+  } catch (e) {
+    console.error('[auto-plan] Fehler bei der automatischen Tagesplanung:', e.message);
+  }
+}
+runAutoPlan();
+setInterval(runAutoPlan, 6 * 60 * 60 * 1000);
 
 const app = express();
 
