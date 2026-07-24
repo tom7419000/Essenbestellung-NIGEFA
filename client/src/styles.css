@@ -139,11 +139,13 @@ a { color: var(--accent-dark); }
   flex-wrap: wrap;
 }
 
-.brand { font-weight: 700; font-size: 1.05rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem; }
-.brand-emoji { margin-right: 0.15rem; }
-.brand-logo { height: 30px; max-width: 140px; object-fit: contain; display: block; }
+.brand { font-weight: 700; font-size: 1.05rem; white-space: nowrap; display: inline-flex; align-items: center; }
+.brand-emoji { font-size: 1.5rem; line-height: 1; }
+.brand-logo { height: 30px; max-width: 260px; object-fit: contain; display: block; }
 
-.nav { display: flex; gap: 0.25rem; flex-wrap: wrap; flex: 1; }
+/* Navigation bleibt auf dem Desktop einzeilig; erst unterhalb des
+   Umbruchpunkts erscheint das Hamburger-Menü. */
+.nav { display: flex; gap: 0.2rem; flex-wrap: nowrap; flex: 1; min-width: 0; }
 
 .nav a {
   text-decoration: none;
@@ -441,6 +443,21 @@ input:focus, select:focus, textarea:focus {
 }
 .order-item-list { margin: 0; padding-left: 1.1rem; }
 .order-item-list li { line-height: 1.35; }
+
+.logo-size-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.logo-size-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.logo-size-preview img { object-fit: contain; max-width: 260px; }
+.logo-size-controls { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-width: 220px; }
+.logo-size-controls input[type='range'] { width: 100%; }
 
 .inline-select { flex-direction: row; align-items: center; gap: 0.5rem; }
 
@@ -873,7 +890,9 @@ body.no-scroll { overflow: hidden; }
 
 .offcanvas-foot { border-top: 1px solid var(--border); padding-top: 0.6rem; }
 
-@media (max-width: 767px) {
+/* Unterhalb 860px (Tablet/Mobil): Navigation ins Off-Canvas-Menü verlagern,
+   damit die Kopfleiste auf dem Desktop einzeilig bleibt. */
+@media (max-width: 860px) {
   .nav { display: none; }
   .topbar-user .user-name,
   .topbar-user .logout-btn { display: none; }

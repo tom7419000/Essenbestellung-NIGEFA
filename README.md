@@ -93,8 +93,11 @@ per MSAL – ohne Client-Secret, über eine **Verbundanmeldeinformation**
 Verbundanmeldung) erfolgt direkt in der App unter **Admin → Anmeldung (SSO)**
 inkl. „Verbindung testen"; Einrichtung und benötigte Azure-Werte siehe
 [docs/sso-entra-id.md](docs/sso-entra-id.md). Ohne Konfiguration bleibt die
-lokale Anmeldung aktiv. Dark Mode und Branding (Logo, Favicon, Farbschema)
-konfiguriert der Admin direkt in der App unter **Design**.
+lokale Anmeldung aktiv. Dark Mode und Branding (Logo inkl. einstellbarer
+Logo-Größe, Favicon, Farbschema) konfiguriert der Admin direkt in der App
+unter **Design**. Die Kopfleiste zeigt allein das Logo (ohne Texttitel); die
+Navigation bleibt auf dem Desktop einzeilig und wird erst auf schmaleren
+Bildschirmen zum Menü zusammengefasst.
 
 ## Automatische Installation auf Ubuntu Server
 

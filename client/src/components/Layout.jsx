@@ -121,11 +121,17 @@ export default function Layout() {
         <div className="topbar-inner">
           <span className="brand">
             {branding.logoUrl ? (
-              <img className="brand-logo" src={branding.logoUrl} alt="Logo" />
+              <img
+                className="brand-logo"
+                src={branding.logoUrl}
+                alt="Logo"
+                style={{ height: `${branding.logoHeight || 30}px` }}
+              />
             ) : (
-              <span className="brand-emoji">🍽️</span>
-            )}{' '}
-            Essensbestellung
+              <span className="brand-emoji" aria-label="Essensbestellung" role="img">
+                🍽️
+              </span>
+            )}
           </span>
           <nav className="nav">
             {mainLinks.map((l) => (

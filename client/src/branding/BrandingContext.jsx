@@ -54,6 +54,7 @@ export function BrandingProvider({ children }) {
     colors: DEFAULT_COLORS,
     logoUrl: null,
     faviconUrl: null,
+    logoHeight: 30,
   });
 
   const refresh = useCallback(async () => {

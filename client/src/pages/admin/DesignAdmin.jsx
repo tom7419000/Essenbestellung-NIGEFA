@@ -10,15 +10,35 @@ const COLOR_FIELDS = [
   { key: 'accent', label: 'Akzentfarbe', hint: 'Erfolg, eigene Auswahl, „Geliefert“-Status' },
 ];
 
+const LOGO_HEIGHT_MIN = 16;
+const LOGO_HEIGHT_MAX = 160;
+
 export default function DesignAdmin() {
   const { branding, refresh } = useBranding();
   const [colors, setColors] = useState(branding.colors);
+  const [logoHeight, setLogoHeight] = useState(branding.logoHeight || 30);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     setColors(branding.colors);
   }, [branding.colors]);
+
+  useEffect(() => {
+    setLogoHeight(branding.logoHeight || 30);
+  }, [branding.logoHeight]);
+
+  async function saveLogoSize(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await api('/branding/logo-size', { method: 'PUT', body: { logoHeight } });
+      await refresh();
+      setMessage('Logo-Größe gespeichert.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   // Beim Verlassen der Seite ohne Speichern: Vorschau zurücksetzen.
   const storedColorsRef = useRef(branding.colors);
@@ -109,6 +129,56 @@ export default function DesignAdmin() {
             </button>
             <button type="button" className="btn" onClick={resetColors}>
               <FontAwesomeIcon icon={faRotateLeft} /> Auf Standard zurücksetzen
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <h2>Logo-Größe</h2>
+        <p className="muted">
+          Höhe des Logos in der Kopfleiste ({LOGO_HEIGHT_MIN}–{LOGO_HEIGHT_MAX} Pixel). Der
+          Texttitel entfällt – die Kopfleiste zeigt allein das Logo.
+        </p>
+        <form className="stack" onSubmit={saveLogoSize}>
+          <div className="logo-size-row">
+            <div className="logo-size-preview" style={{ minHeight: `${LOGO_HEIGHT_MAX}px` }}>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt="Logo-Vorschau" style={{ height: `${logoHeight}px` }} />
+              ) : (
+                <span className="brand-emoji" style={{ fontSize: `${logoHeight}px` }} role="img" aria-label="Logo-Platzhalter">
+                  🍽️
+                </span>
+              )}
+            </div>
+            <div className="logo-size-controls">
+              <input
+                type="range"
+                min={LOGO_HEIGHT_MIN}
+                max={LOGO_HEIGHT_MAX}
+                value={logoHeight}
+                onChange={(e) => setLogoHeight(Number(e.target.value))}
+              />
+              <label className="inline-select">
+                Höhe
+                <input
+                  type="number"
+                  min={LOGO_HEIGHT_MIN}
+                  max={LOGO_HEIGHT_MAX}
+                  value={logoHeight}
+                  onChange={(e) => setLogoHeight(Number(e.target.value))}
+                  style={{ width: '5rem' }}
+                />
+                px
+              </label>
+            </div>
+          </div>
+          {!branding.logoUrl && (
+            <p className="muted">Noch kein Logo hinterlegt – die Vorschau zeigt das Standard-Symbol.</p>
+          )}
+          <div className="row">
+            <button className="btn btn-primary">
+              <FontAwesomeIcon icon={faFloppyDisk} /> Logo-Größe speichern
             </button>
           </div>
         </form>

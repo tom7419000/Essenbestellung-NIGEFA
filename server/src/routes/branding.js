@@ -73,6 +73,10 @@ function fileUrl(kind) {
   return `/api/branding/${kind}?v=${getSetting('branding_version', '0')}`;
 }
 
+export const DEFAULT_LOGO_HEIGHT = 30;
+export const LOGO_HEIGHT_MIN = 16;
+export const LOGO_HEIGHT_MAX = 160;
+
 export function currentBranding() {
   return {
     colors: {
@@ -82,6 +86,7 @@ export function currentBranding() {
     },
     logoUrl: fileUrl('logo'),
     faviconUrl: fileUrl('favicon'),
+    logoHeight: Number(getSetting('branding_logo_height', String(DEFAULT_LOGO_HEIGHT))) || DEFAULT_LOGO_HEIGHT,
   };
 }
 
@@ -169,6 +174,17 @@ router.put('/colors', requireAuth, requireAdmin, (req, res) => {
   setSetting('branding_color_primary', primary.toLowerCase());
   setSetting('branding_color_secondary', secondary.toLowerCase());
   setSetting('branding_color_accent', accent.toLowerCase());
+  res.json(currentBranding());
+});
+
+router.put('/logo-size', requireAuth, requireAdmin, (req, res) => {
+  const height = Number(req.body?.logoHeight);
+  if (!Number.isInteger(height) || height < LOGO_HEIGHT_MIN || height > LOGO_HEIGHT_MAX) {
+    return res
+      .status(400)
+      .json({ message: `Logo-Höhe: bitte ${LOGO_HEIGHT_MIN}–${LOGO_HEIGHT_MAX} Pixel angeben.` });
+  }
+  setSetting('branding_logo_height', String(height));
   res.json(currentBranding());
 });
 
