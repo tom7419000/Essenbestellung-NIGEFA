@@ -75,6 +75,12 @@ export default function UsersAdmin() {
     <div className="stack">
       <div className="card">
         <h1>Benutzer verwalten</h1>
+        <p className="muted role-hint">
+          <strong>Benutzer:</strong> abstimmen &amp; bestellen. <strong>Planung:</strong>{' '}
+          zusätzlich Tage anlegen, bearbeiten und absagen sowie die Planungs-Standardzeiten –
+          ohne Zugriff auf Benutzer-, Restaurant-, Design- oder SSO-Verwaltung.{' '}
+          <strong>Admin:</strong> vollständige Verwaltung.
+        </p>
         {error && <div className="alert">{error}</div>}
         <div className="table-scroll">
           <table>
@@ -106,6 +112,7 @@ export default function UsersAdmin() {
                         disabled={u.id === me.id}
                       >
                         <option value="user">Benutzer</option>
+                        <option value="planung">Planung</option>
                         <option value="admin">Admin</option>
                       </select>
                     </td>
@@ -142,7 +149,15 @@ export default function UsersAdmin() {
                   <tr key={u.id}>
                     <td>{u.username}</td>
                     <td>{u.displayName}</td>
-                    <td>{u.role === 'admin' ? <span className="badge badge-admin">Admin</span> : 'Benutzer'}</td>
+                    <td>
+                      {u.role === 'admin' ? (
+                        <span className="badge badge-admin">Admin</span>
+                      ) : u.role === 'planung' ? (
+                        <span className="badge badge-plan">Planung</span>
+                      ) : (
+                        'Benutzer'
+                      )}
+                    </td>
                     <td>
                       {u.isActive ? (
                         <span className="badge badge-ok">aktiv</span>
@@ -204,6 +219,7 @@ export default function UsersAdmin() {
             Rolle
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               <option value="user">Benutzer</option>
+              <option value="planung">Planung</option>
               <option value="admin">Admin</option>
             </select>
           </label>

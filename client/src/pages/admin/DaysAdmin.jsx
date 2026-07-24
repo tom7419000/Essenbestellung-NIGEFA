@@ -53,12 +53,12 @@ export default function DaysAdmin() {
       const [d, r, u, s] = await Promise.all([
         api('/days'),
         api('/restaurants'),
-        api('/users'),
+        api('/users/selectable'),
         api('/settings'),
       ]);
       setDays(d.days);
       setRestaurants(r.restaurants);
-      setUsers(u.users.filter((x) => x.isActive));
+      setUsers(u.users);
       setSettings(s);
       setForm((prev) => prev ?? emptyForm(s));
     } catch (e) {

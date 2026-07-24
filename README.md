@@ -29,8 +29,9 @@ Storniert; einzeln oder als Sammelaktion).
 | Rolle | Möglichkeiten |
 | --- | --- |
 | **Benutzer** | Anmelden, an beiden Abstimmungen teilnehmen, eigenes Essen wählen, eigene Bestellungen einsehen |
+| **Planung** | Zusätzlich: Tage anlegen, bearbeiten und absagen sowie die Planungs-Standardzeiten pflegen – **ohne** Zugriff auf Benutzer-, Restaurant-, Design- oder SSO-Verwaltung |
 | **Organisator** | Zusätzlich (für „seinen“ Tag): alle Bestellungen einsehen, Bestellstatus verwalten, Sammelbestellung |
-| **Administrator** | Benutzer, Restaurants und Speisekarten verwalten, Tagesplanung (Restaurants, Organisator, Zeiten je Tag), Standardzeiten konfigurieren, alle Ergebnisse einsehen |
+| **Administrator** | Vollständige Verwaltung: Benutzer, Restaurants und Speisekarten, Tagesplanung, Standardzeiten, Design/Branding, SSO, alle Ergebnisse |
 
 ## Tech-Stack
 

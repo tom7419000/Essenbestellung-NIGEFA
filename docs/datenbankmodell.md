@@ -28,6 +28,7 @@ erDiagram
         text display_name
         text password_hash "bcrypt"
         text role "user | admin"
+        int can_plan "Berechtigung Planung (0/1)"
         int is_active
         text created_at
     }
@@ -94,7 +95,7 @@ erDiagram
 
 | Tabelle | Zweck |
 | --- | --- |
-| `users` | Benutzerkonten mit Rolle (`user`/`admin`). Die Organisator-Rolle ist keine globale Rolle, sondern eine **Zuweisung pro Tag** (`days.organizer_id`). |
+| `users` | Benutzerkonten mit Rolle (`user`/`admin`) und dem additiven Flag `can_plan` (Berechtigung **„Planung"**: Tage anlegen/ändern/absagen und Planungs-Standardzeiten, aber keine Benutzer-/Restaurant-/Design-/SSO-Verwaltung). Nach außen erscheinen so drei Rollen: `user`, `planung`, `admin`. Die Organisator-Rolle ist keine globale Rolle, sondern eine **Zuweisung pro Tag** (`days.organizer_id`). |
 | `restaurants` | Stammdaten der Restaurants/Lieferdienste. Statt harter Löschung werden verwendete Restaurants deaktiviert (`is_active = 0`), damit die Historie erhalten bleibt. |
 | `menu_items` | Speisekarte je Restaurant, Preis in Cent (vermeidet Rundungsfehler). |
 | `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. |
@@ -137,6 +138,7 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 3 | `days.organizer_mode` und `days.organizer_source` (Organisator-Modi: manuell/freiwillig/zufällig) |
 | 4 | `orders.paid` (Bezahlt-Status) |
 | 5 | `users.token_version` (serverseitige Token-Invalidierung bei Logout/Passwortänderung) |
+| 6 | `users.can_plan` (Berechtigung „Planung": Tagesplanung ohne weitere Admin-Rechte) |
 
 ## Zeitzonen
 

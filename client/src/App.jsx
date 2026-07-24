@@ -12,11 +12,14 @@ import DaysAdmin from './pages/admin/DaysAdmin.jsx';
 import DesignAdmin from './pages/admin/DesignAdmin.jsx';
 import SsoAdmin from './pages/admin/SsoAdmin.jsx';
 
-function Protected({ children, adminOnly = false }) {
+function Protected({ children, adminOnly = false, plannerOnly = false }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="page-loading">Lädt …</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== 'admin') return <Navigate to="/" replace />;
+  if (plannerOnly && user.role !== 'admin' && user.role !== 'planung') {
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
@@ -40,7 +43,7 @@ export default function App() {
             <Route
               path="/admin/tage"
               element={
-                <Protected adminOnly>
+                <Protected plannerOnly>
                   <DaysAdmin />
                 </Protected>
               }

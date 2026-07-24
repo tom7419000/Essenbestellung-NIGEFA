@@ -36,12 +36,22 @@ export function passwordError(pw) {
   return null;
 }
 
+// Effektive Rolle nach außen: Administratoren haben alle Rechte; die
+// Berechtigung „Planung" (can_plan) erscheint als eigene Rolle, ist intern
+// aber ein additives Flag auf einem normalen Benutzerkonto.
+export function effectiveRole(u) {
+  if (u.role === 'admin') return 'admin';
+  if (u.can_plan) return 'planung';
+  return 'user';
+}
+
 export function sanitizeUser(u) {
   return {
     id: u.id,
     username: u.username,
     displayName: u.display_name,
-    role: u.role,
+    role: effectiveRole(u),
+    canPlan: !!u.can_plan,
     isActive: !!u.is_active,
   };
 }
@@ -77,6 +87,16 @@ export function bumpTokenVersion(userId) {
 export function requireAdmin(req, res, next) {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Nur für Administratoren.' });
+  }
+  next();
+}
+
+// Tagesplanung: erlaubt für Administratoren und Konten mit der Berechtigung
+// „Planung" (can_plan). Deckt ausschließlich die Planungsfunktionen ab –
+// Benutzer-, Restaurant-, Branding- und SSO-Verwaltung bleiben Admin-only.
+export function requirePlanner(req, res, next) {
+  if (req.user.role !== 'admin' && !req.user.can_plan) {
+    return res.status(403).json({ message: 'Nur für Planung oder Administratoren.' });
   }
   next();
 }

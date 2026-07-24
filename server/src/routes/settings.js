@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { getSetting, setSetting } from '../db.js';
-import { requireAuth, requireAdmin } from '../auth.js';
+import { requireAuth, requirePlanner } from '../auth.js';
 
 const router = Router();
-router.use(requireAuth, requireAdmin);
+// Planungs-Standardeinstellungen gehören zur Tagesplanung und sind daher auch
+// für die Berechtigung „Planung" zugänglich (nicht nur für Administratoren).
+router.use(requireAuth, requirePlanner);
 
 const ORGANIZER_MODES = ['manuell', 'freiwillig', 'zufaellig'];
 

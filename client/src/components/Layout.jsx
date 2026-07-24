@@ -31,6 +31,13 @@ const ADMIN_LINKS = [
   { to: '/admin/sso', icon: faKey, label: 'Anmeldung (SSO)' },
 ];
 
+// Rollen-Abzeichen (Admin bzw. Planung) neben dem Namen.
+function RoleBadge({ role }) {
+  if (role === 'admin') return <span className="badge badge-admin">Admin</span>;
+  if (role === 'planung') return <span className="badge badge-plan">Planung</span>;
+  return null;
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { branding } = useBranding();
@@ -96,6 +103,11 @@ export default function Layout() {
     ...(showOrganizerLink
       ? [{ to: '/organisation', icon: faClipboardList, label: 'Organisation' }]
       : []),
+    // Planer (ohne Admin-Rechte) erreichen die Tagesplanung direkt über die
+    // Hauptnavigation; Admins finden sie im Admin-Menü.
+    ...(user.role === 'planung'
+      ? [{ to: '/admin/tage', icon: faCalendarDays, label: 'Tagesplanung' }]
+      : []),
   ];
 
   function openMobileMenu() {
@@ -157,7 +169,7 @@ export default function Layout() {
             </button>
             <span className="user-name">
               {user.displayName}
-              {user.role === 'admin' && <span className="badge badge-admin">Admin</span>}
+              <RoleBadge role={user.role} />
             </span>
             <button
               className="btn btn-ghost logout-btn"
@@ -188,7 +200,7 @@ export default function Layout() {
             <div className="offcanvas-head">
               <span className="user-name">
                 {user.displayName}
-                {user.role === 'admin' && <span className="badge badge-admin">Admin</span>}
+                <RoleBadge role={user.role} />
               </span>
               <button
                 className="btn btn-ghost"

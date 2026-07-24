@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name  TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  can_plan      INTEGER NOT NULL DEFAULT 0,
   is_active     INTEGER NOT NULL DEFAULT 1,
   token_version INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -165,6 +166,15 @@ const migrations = [
     up() {
       if (!columnExists('users', 'token_version')) {
         db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+  },
+  {
+    version: 6,
+    name: 'users.can_plan (Berechtigung „Planung")',
+    up() {
+      if (!columnExists('users', 'can_plan')) {
+        db.exec('ALTER TABLE users ADD COLUMN can_plan INTEGER NOT NULL DEFAULT 0');
       }
     },
   },

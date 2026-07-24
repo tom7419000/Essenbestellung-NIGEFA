@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { requireAuth, requireAdmin } from '../auth.js';
+import { requireAuth, requireAdmin, requirePlanner } from '../auth.js';
 import { ensureCurrent, resolveOpenDays } from '../dayLogic.js';
 import { todayStr } from '../util.js';
 
@@ -351,7 +351,7 @@ daysRouter.patch('/:id/orders-paid', (req, res) => {
 
 // ---------- Admin: Tagesplanung ----------
 
-daysRouter.get('/', requireAdmin, (req, res) => {
+daysRouter.get('/', requirePlanner, (req, res) => {
   resolveOpenDays();
   const rows = db
     .prepare(
@@ -445,7 +445,7 @@ const insertDayTx = db.transaction((v) => {
   return dayId;
 });
 
-daysRouter.post('/', requireAdmin, (req, res) => {
+daysRouter.post('/', requirePlanner, (req, res) => {
   const v = validateDayInput(req.body);
   if (v.error) return res.status(400).json({ message: v.error });
   const dayId = insertDayTx(v);
@@ -486,7 +486,7 @@ const updateDayTx = db.transaction((day, v) => {
   ).run(dayId, ...v.restaurantIds);
 });
 
-daysRouter.put('/:id', requireAdmin, (req, res) => {
+daysRouter.put('/:id', requirePlanner, (req, res) => {
   const day = getDay(req.params.id);
   if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
   const v = validateDayInput(req.body, day.id);
@@ -496,7 +496,7 @@ daysRouter.put('/:id', requireAdmin, (req, res) => {
   res.json({ day: mapDay(updated) });
 });
 
-daysRouter.delete('/:id', requireAdmin, (req, res) => {
+daysRouter.delete('/:id', requirePlanner, (req, res) => {
   const day = getDay(req.params.id);
   if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
   // Stimmen und Bestellungen des Tages werden mitgelöscht (ON DELETE CASCADE).

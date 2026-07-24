@@ -4,7 +4,7 @@ Basis-URL: `/api`. Authentifizierung per **JWT** im Header `Authorization: Beare
 (Gültigkeit 12 h). Alle Antworten sind JSON; Fehler haben die Form
 `{ "message": "…" }` mit passendem HTTP-Status (400/401/403/404/409).
 
-Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tages oder Admin · 🔑 Admin
+Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tages oder Admin · 🗓️ Planung oder Admin · 🔑 Admin
 
 ## Authentifizierung
 
@@ -43,12 +43,13 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
-| GET | `/days` | 🔑 | Alle geplanten Tage inkl. Organisator, Gewinner, Stimmen-/Bestellzahlen |
-| POST | `/days` | 🔑 | Tag anlegen. Body: `{date, organizerId, phase1Deadline, phase2Deadline, restaurantIds[]}` (Deadlines als ISO-Zeitstempel) |
-| PUT | `/days/:id` | 🔑 | Tag ändern (gleicher Body). Status/Gewinner werden aus den neuen Deadlines neu berechnet. |
-| DELETE | `/days/:id` | 🔑 | Tag inkl. Stimmen und Bestellungen löschen |
+| GET | `/days` | 🗓️ | Alle geplanten Tage inkl. Organisator, Gewinner, Stimmen-/Bestellzahlen |
+| POST | `/days` | 🗓️ | Tag anlegen. Body: `{date, organizerId, organizerMode, phase1Deadline, phase2Deadline, restaurantIds[]}` (Deadlines als ISO-Zeitstempel) |
+| PUT | `/days/:id` | 🗓️ | Tag ändern (gleicher Body). Status/Gewinner werden aus den neuen Deadlines neu berechnet. |
+| DELETE | `/days/:id` | 🗓️ | Tag inkl. Stimmen und Bestellungen löschen |
+| GET | `/users/selectable` | 🗓️ | Aktive Benutzer (nur `id`, `displayName`) für die Organisator-Auswahl der Tagesplanung |
 | GET | `/users` | 🔑 | Benutzerliste |
-| POST | `/users` | 🔑 | Benutzer anlegen. Body: `{username, displayName, password, role}` |
+| POST | `/users` | 🔑 | Benutzer anlegen. Body: `{username, displayName, password, role}` (`role`: `user` \| `planung` \| `admin`) |
 | PUT | `/users/:id` | 🔑 | Benutzer ändern (`displayName`, `role`, `isActive`, optional `password`) |
 | DELETE | `/users/:id` | 🔑 | Benutzer löschen (eigenes Konto ausgenommen) |
 | GET | `/restaurants` | 👤 | Aktive Restaurants (`?all=1` als Admin: inkl. deaktivierter) |
@@ -62,8 +63,8 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/menu-import/preview` | 🔑 | Speisekarte einer externen Seite auslesen (Lieferando oder Gastromia, siehe [speisekarten-import.md](speisekarten-import.md)). Body: `{url}` → `{provider, restaurantName, items[], warnings[]}` (noch ohne Speichern) |
 | PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`) |
 | DELETE | `/menu-items/:id` | 🔑 | Gericht löschen; bereits bestellte Gerichte werden deaktiviert |
-| GET | `/settings` | 🔑 | Standard-Abstimmungszeiten und Organisator-Modus |
-| PUT | `/settings` | 🔑 | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode, organizerAssignMinutes}` |
+| GET | `/settings` | 🗓️ | Standard-Abstimmungszeiten und Organisator-Modus |
+| PUT | `/settings` | 🗓️ | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode, organizerAssignMinutes}` |
 | GET | `/sso/settings` | 🔑 | SSO-Konfiguration (Client-/Tenant-ID, Verbundanmeldung) |
 | PUT | `/sso/settings` | 🔑 | SSO speichern. Body: `{enabled, autoRedirect, clientId, tenantId, ficIssuer, ficSubject, ficAudience}` |
 | POST | `/sso/test` | 🔑 | Verbindungstest: holt per Verbundanmeldeinformation ein Token von Entra ID → `{ok, message}` |

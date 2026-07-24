@@ -440,6 +440,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .badge-admin { background: var(--accent-soft); color: var(--accent-dark); }
+.badge-plan { background: var(--blue-soft); color: var(--blue); }
 .badge-ok { background: var(--green-soft); color: var(--green); }
 .badge-off { background: var(--gray-soft); color: var(--muted); }
 
