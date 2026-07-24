@@ -10,6 +10,8 @@ erDiagram
     users ||--o{ restaurant_votes : "stimmt ab"
     users ||--o{ orders : "bestellt"
     users |o--o{ days : "organisiert"
+    users ||--o{ push_subscriptions : "abonniert Push"
+    days ||--o{ notification_log : "löst aus"
 
     restaurants ||--o{ menu_items : "hat"
     restaurants ||--o{ day_restaurants : "steht zur Wahl"
@@ -101,6 +103,21 @@ erDiagram
         text key PK
         text value
     }
+
+    push_subscriptions {
+        int id PK
+        int user_id FK
+        text endpoint UK "Web-Push-Endpunkt (Gerät/Browser)"
+        text p256dh
+        text auth
+    }
+
+    notification_log {
+        int id PK
+        int day_id FK
+        text kind "organizer_assigned | phase_closed"
+        int user_id FK "Empfänger; UNIQUE(day_id,kind,user_id)"
+    }
 ```
 
 ## Tabellen im Überblick
@@ -115,7 +132,9 @@ erDiagram
 | `restaurant_votes` | Phase-1-Stimmen. `UNIQUE (day_id, user_id)` erzwingt eine Stimme pro Person und Tag; erneutes Abstimmen ändert die Stimme (Upsert). |
 | `orders` | Phase-2-Bestellungen (Kopf je Person und Tag). `UNIQUE (day_id, user_id)` erzwingt eine Bestellung pro Person und Tag; änderbar bis Bestellschluss. Status/Bezahlt werden vom Organisator gepflegt. `menu_item_id` hält aus Kompatibilitätsgründen die erste Position; maßgeblich sind die `order_items`. |
 | `order_items` | Einzelne Gerichte einer Bestellung – erlaubt die **Mehrfachauswahl** (z. B. Vorspeise + Hauptgang + Beilage). Preis/Name werden live aus `menu_items` gelesen; die Bestellsumme ist die Summe der Positionen. |
-| `settings` | Key-Value-Einstellungen: Standard-Abstimmungszeiten/-Organisator-Modus für neue Tage sowie die Konfiguration der automatischen Tagesplanung (`auto_plan_config`, JSON). |
+| `settings` | Key-Value-Einstellungen: Standard-Abstimmungszeiten/-Organisator-Modus für neue Tage, die Konfiguration der automatischen Tagesplanung (`auto_plan_config`, JSON) sowie die VAPID-Schlüssel für Web Push. |
+| `push_subscriptions` | Web-Push-Abonnements je Nutzer (mehrere Geräte/Browser möglich). Tote Endpunkte (404/410) werden beim Senden automatisch entfernt. |
+| `notification_log` | Protokoll verschickter Benachrichtigungen. `UNIQUE (day_id, kind, user_id)` erzwingt „genau einmal" je Auslöser (Organisator bestimmt / Bestellphase beendet). |
 
 ## Statuslogik (Phasenübergänge)
 
@@ -155,6 +174,7 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 7 | `days.auto_created` (Kennzeichnung automatisch erzeugter Tage) |
 | 8 | `menu_items.weekdays` (Tagesessen: Bindung an Wochentage) |
 | 9 | `order_items` (Mehrfachauswahl je Bestellung; Altbestand aus `orders.menu_item_id` übernommen) |
+| 10 | `push_subscriptions` und `notification_log` (Web-Push-Benachrichtigungen für Organisatoren) |
 
 ## Zeitzonen
 

@@ -459,6 +459,27 @@ input:focus, select:focus, textarea:focus {
 .logo-size-controls { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-width: 220px; }
 .logo-size-controls input[type='range'] { width: 100%; }
 
+.user-name-link { text-decoration: none; color: inherit; border-radius: 999px; padding: 0.1rem 0.35rem; }
+.user-name-link:hover { background: var(--gray-soft); }
+
+.push-banner {
+  max-width: 1140px;
+  margin: 0.6rem auto 0;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+}
+.push-banner-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.push-banner-error { color: var(--danger, #c92a2a); font-weight: 600; }
+.badge-status { display: inline-flex; align-items: center; gap: 0.4rem; }
+
 .inline-select { flex-direction: row; align-items: center; gap: 0.5rem; }
 
 .input-price { width: 7.5rem; }

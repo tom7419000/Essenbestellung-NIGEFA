@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import TodayPage from './pages/TodayPage.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
 import OrganizerPage from './pages/OrganizerPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
 import UsersAdmin from './pages/admin/UsersAdmin.jsx';
 import RestaurantsAdmin from './pages/admin/RestaurantsAdmin.jsx';
 import DaysAdmin from './pages/admin/DaysAdmin.jsx';
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/" element={<TodayPage />} />
             <Route path="/meine-bestellungen" element={<MyOrdersPage />} />
             <Route path="/organisation" element={<OrganizerPage />} />
+            <Route path="/einstellungen" element={<SettingsPage />} />
             <Route
               path="/admin/tage"
               element={

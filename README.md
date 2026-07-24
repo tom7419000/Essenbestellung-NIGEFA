@@ -74,7 +74,8 @@ npm start       # Express liefert API + Frontend gemeinsam auf Port 3001 aus
 
 Konfiguration über Umgebungsvariablen: `PORT` (Standard 3001), `JWT_SECRET`
 (sonst automatisch generiert und in `server/data/` abgelegt), `APP_TIMEZONE`
-(Standard `Europe/Berlin`). Der Server lädt zusätzlich `server/.env`, das
+(Standard `Europe/Berlin`), `VAPID_SUBJECT` (Kontakt-URL für Web Push, Standard
+`mailto:admin@localhost`). Der Server lädt zusätzlich `server/.env`, das
 Frontend `client/.env` (Vorlagen: `*.env.example`).
 
 **HTTPS/TLS (empfohlen):** Der Server liefert unverschlüsseltes HTTP aus und
@@ -200,6 +201,13 @@ Befehl zur Wiederherstellung im Fehlerfall.
   (Feld `weekdays`, leer = jeden Tag); für „Tagesessen“ wird der Wochentag beim
   Import auch aus dem Text vorgeschlagen. Solche Gerichte sind nur am passenden
   Wochentag sichtbar und bestellbar – die Prüfung erfolgt serverseitig.
+- **Push-Benachrichtigungen (Organisator):** Über die Web Push API (Service Worker,
+  VAPID) wird der Organisator benachrichtigt, wenn er – auch per Zufallsauswahl –
+  bestimmt wird und wenn die Bestellphase endet. Die Berechtigung wird nicht
+  aufdringlich angefragt (dezenter Hinweis für Organisatoren, Schalter unter
+  **Einstellungen**). Ohne Zustimmung/Unterstützung greift der In-Portal-Hinweis
+  als Fallback. Ist die optionale Abhängigkeit `web-push` nicht installiert,
+  bleibt Push deaktiviert und die App läuft normal weiter.
 - **Historie bleibt erhalten:** Restaurants und Gerichte, die bereits verwendet wurden,
   werden beim „Löschen“ deaktiviert statt entfernt.
 - **Sicherheit:** bcrypt-Hashes, JWT mit 12 h Laufzeit, rollenbasierte Middleware,

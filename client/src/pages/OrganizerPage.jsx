@@ -153,10 +153,15 @@ export default function OrganizerPage() {
                 individuell abgesprochen und tauchen hier nicht auf.
               </div>
             )}
-            {detail.day.status !== 'closed' && (
+            {detail.day.status !== 'closed' ? (
               <div className="notice">
                 Die Bestellphase läuft noch (Bestellschluss {fmtTime(detail.day.phase2Deadline)} Uhr) –
                 diese Liste kann sich noch ändern.
+              </div>
+            ) : (
+              <div className="notice success">
+                Die Bestellphase ist beendet – bitte jetzt die Sammelbestellung beim Restaurant
+                aufgeben.
               </div>
             )}
             {detail.winner?.phone && (

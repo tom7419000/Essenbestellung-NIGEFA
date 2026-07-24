@@ -1,4 +1,5 @@
 import { db, getSetting } from './db.js';
+import { notifyOrganizerAssigned, notifyPhaseClosed } from './push.js';
 
 // Gewinner der Phase 1: meiste Stimmen; bei Gleichstand gewinnt die
 // zuerst gelistete Option des Tages. Ohne Stimmen fällt die Wahl auf
@@ -45,7 +46,10 @@ export function ensureCurrent(day) {
     );
     day = db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
   }
-  return maybeAssignOrganizer(day);
+  const finalDay = maybeAssignOrganizer(day);
+  // Beim Übergang in „closed" den Organisator erinnern (Dedup in push.js).
+  if (finalDay.status === 'closed') notifyPhaseClosed(finalDay);
+  return finalDay;
 }
 
 // Automatische Organisator-Zuweisung:
@@ -70,10 +74,15 @@ function maybeAssignOrganizer(day) {
   if (orderers.length === 0) return day;
 
   const pick = orderers[Math.floor(Math.random() * orderers.length)].user_id;
-  db.prepare(
-    "UPDATE days SET organizer_id = ?, organizer_source = 'zufaellig' WHERE id = ? AND organizer_id IS NULL"
-  ).run(pick, day.id);
-  return db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
+  const info = db
+    .prepare(
+      "UPDATE days SET organizer_id = ?, organizer_source = 'zufaellig' WHERE id = ? AND organizer_id IS NULL"
+    )
+    .run(pick, day.id);
+  const updated = db.prepare('SELECT * FROM days WHERE id = ?').get(day.id);
+  // Zufällig bestimmter Organisator: besonders wichtig, dass er es erfährt.
+  if (info.changes > 0) notifyOrganizerAssigned(updated, pick);
+  return updated;
 }
 
 // Wird periodisch und vor Listen-Abfragen aufgerufen, damit Phasenwechsel

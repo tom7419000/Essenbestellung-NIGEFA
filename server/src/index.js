@@ -6,6 +6,7 @@ import express from 'express';
 import { initDb } from './db.js';
 import { resolveOpenDays } from './dayLogic.js';
 import { generateAutoPlan } from './autoPlan.js';
+import { initPush } from './push.js';
 import { securityHeaders } from './security.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
@@ -16,11 +17,15 @@ import settingsRouter from './routes/settings.js';
 import brandingRouter, { faviconAlias } from './routes/branding.js';
 import menuImportRouter from './routes/menuImport.js';
 import ssoRouter, { wellKnownHandler } from './routes/sso.js';
+import pushRouter from './routes/push.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
 
 initDb();
+
+// Web-Push initialisieren (lädt VAPID-Schlüssel bzw. erzeugt sie einmalig).
+initPush();
 
 // Phasenwechsel finden auch ohne Benutzer-Traffic statt.
 resolveOpenDays();
@@ -66,6 +71,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/branding', brandingRouter);
 app.use('/api/menu-import', menuImportRouter);
 app.use('/api/sso', ssoRouter);
+app.use('/api/push', pushRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Nicht gefunden.' }));
 

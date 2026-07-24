@@ -104,6 +104,26 @@ CREATE TABLE IF NOT EXISTS order_items (
   UNIQUE (order_id, menu_item_id)
 );
 
+-- Web-Push-Abonnements je Nutzer (mehrere Geräte/Browser möglich).
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint   TEXT NOT NULL UNIQUE,
+  p256dh     TEXT NOT NULL,
+  auth       TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Verschickte Benachrichtigungen – erzwingt „genau einmal" je (Tag, Art, Nutzer).
+CREATE TABLE IF NOT EXISTS notification_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  day_id     INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL,
+  user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (day_id, kind, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -114,6 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_day ON orders(day_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
 `;
 
 function columnExists(table, column) {
@@ -222,6 +243,29 @@ const migrations = [
       // Bestehende Einzelbestellungen als erste Position übernehmen.
       db.exec(`INSERT OR IGNORE INTO order_items (order_id, menu_item_id)
                SELECT id, menu_item_id FROM orders WHERE menu_item_id IS NOT NULL`);
+    },
+  },
+  {
+    version: 10,
+    name: 'push_subscriptions & notification_log (Push-Benachrichtigungen)',
+    up() {
+      db.exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint   TEXT NOT NULL UNIQUE,
+        p256dh     TEXT NOT NULL,
+        auth       TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )`);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)');
+      db.exec(`CREATE TABLE IF NOT EXISTS notification_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        day_id     INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+        kind       TEXT NOT NULL,
+        user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (day_id, kind, user_id)
+      )`);
     },
   },
 ];

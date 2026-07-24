@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBars,
+  faBell,
   faCalendarDays,
   faChevronDown,
   faClipboardList,
+  faGear,
   faKey,
   faMoon,
   faPalette,
@@ -22,6 +24,9 @@ import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useBranding } from '../branding/BrandingContext.jsx';
 import { currentTheme, toggleTheme } from '../theme.js';
+import { enablePush, permissionState, pushSupported, registerServiceWorker } from '../push.js';
+
+const PUSH_BANNER_KEY = 'essensbestellung.pushBannerDismissed';
 
 const ADMIN_LINKS = [
   { to: '/admin/tage', icon: faCalendarDays, label: 'Tagesplanung' },
@@ -48,6 +53,11 @@ export default function Layout() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [pushPermission, setPushPermission] = useState(pushSupported() ? permissionState() : 'unsupported');
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => localStorage.getItem(PUSH_BANNER_KEY) === '1'
+  );
+  const [pushError, setPushError] = useState('');
   const adminRef = useRef(null);
 
   useEffect(() => {
@@ -59,6 +69,37 @@ export default function Layout() {
       .then((d) => setShowOrganizerLink(d.days.length > 0))
       .catch(() => {});
   }, [user]);
+
+  // Service Worker registrieren, damit Push-Nachrichten empfangen werden können.
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
+  function dismissBanner() {
+    localStorage.setItem(PUSH_BANNER_KEY, '1');
+    setBannerDismissed(true);
+  }
+
+  async function activatePush() {
+    setPushError('');
+    try {
+      await enablePush();
+      setPushPermission(permissionState());
+      dismissBanner();
+    } catch (e) {
+      setPushError(e.message);
+      setPushPermission(permissionState());
+    }
+  }
+
+  // Dezenter Hinweis nur für (potenzielle) Organisatoren, solange die
+  // Berechtigung weder erteilt noch abgelehnt wurde – nicht aufdringlich.
+  const showPushBanner =
+    pushSupported() &&
+    pushPermission === 'default' &&
+    showOrganizerLink &&
+    !bannerDismissed &&
+    location.pathname !== '/einstellungen';
 
   // Menüs schließen bei Navigation.
   useEffect(() => {
@@ -173,10 +214,10 @@ export default function Layout() {
               <FontAwesomeIcon icon={theme === 'dark' ? faMoon : faSun} />
               <span className="theme-toggle-label">{theme === 'dark' ? 'Dunkel' : 'Hell'}</span>
             </button>
-            <span className="user-name">
+            <Link className="user-name user-name-link" to="/einstellungen" title="Einstellungen">
               {user.displayName}
               <RoleBadge role={user.role} />
-            </span>
+            </Link>
             <button
               className="btn btn-ghost logout-btn"
               onClick={() => {
@@ -198,6 +239,24 @@ export default function Layout() {
           </div>
         </div>
       </header>
+
+      {showPushBanner && (
+        <div className="push-banner">
+          <span className="push-banner-text">
+            <FontAwesomeIcon icon={faBell} /> Als Organisator benachrichtigt werden – z. B. bei
+            Zufallsauswahl und zum Bestellschluss?
+            {pushError && <span className="push-banner-error"> {pushError}</span>}
+          </span>
+          <span className="push-banner-actions">
+            <button className="btn btn-sm btn-primary" onClick={activatePush}>
+              Aktivieren
+            </button>
+            <button className="btn btn-sm btn-ghost" onClick={dismissBanner}>
+              Später
+            </button>
+          </span>
+        </div>
+      )}
 
       {menuOpen && (
         <>
@@ -222,6 +281,9 @@ export default function Layout() {
                   <FontAwesomeIcon icon={l.icon} fixedWidth /> {l.label}
                 </NavLink>
               ))}
+              <NavLink to="/einstellungen" onClick={() => setMenuOpen(false)}>
+                <FontAwesomeIcon icon={faGear} fixedWidth /> Einstellungen
+              </NavLink>
               {user.role === 'admin' && (
                 <div className="offcanvas-group">
                   <button

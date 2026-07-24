@@ -37,7 +37,16 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
-| GET | `/my/orders` | 👤 | Eigene Bestellhistorie (Datum, Restaurant, Gericht, Preis, Status) |
+| GET | `/my/orders` | 👤 | Eigene Bestellhistorie (Datum, Restaurant, Gerichte, Summe, Status) |
+
+## Push-Benachrichtigungen
+
+| Methode | Pfad | Rolle | Beschreibung |
+| --- | --- | :-: | --- |
+| GET | `/push/public-key` | 👤 | `{available, publicKey, subscribed}` – VAPID-Public-Key und Status für dieses Konto |
+| POST | `/push/subscribe` | 👤 | Web-Push-Abonnement dieses Geräts speichern. Body: `{endpoint, keys:{p256dh, auth}}` |
+| POST | `/push/unsubscribe` | 👤 | Abonnement dieses Geräts entfernen. Body: `{endpoint}` |
+| POST | `/push/test` | 👤 | Test-Benachrichtigung an die eigenen Geräte senden |
 
 ## Administration
 

@@ -5,6 +5,7 @@ import { ensureCurrent, resolveOpenDays } from '../dayLogic.js';
 import { todayStr, isoWeekday } from '../util.js';
 import { generateAutoPlan, getAutoPlanConfig, setAutoPlanConfig } from '../autoPlan.js';
 import { parseWeekdayCsv, weekdaysAllow } from '../weekdayParse.js';
+import { notifyOrganizerAssigned } from '../push.js';
 
 export const ORDER_STATUS = ['eingegangen', 'bestellt', 'geliefert', 'storniert'];
 
@@ -299,6 +300,7 @@ daysRouter.post('/:id/volunteer', (req, res) => {
   if (info.changes === 0) {
     return res.status(409).json({ message: 'Jemand anderes war schneller – der Platz ist bereits vergeben.' });
   }
+  notifyOrganizerAssigned(day, req.user.id);
   res.json({ ok: true });
 });
 
@@ -528,6 +530,7 @@ daysRouter.post('/', requirePlanner, (req, res) => {
   if (v.error) return res.status(400).json({ message: v.error });
   const dayId = insertDayTx(v);
   const day = ensureCurrent(getDay(dayId));
+  if (day.organizer_id) notifyOrganizerAssigned(day, day.organizer_id);
   res.status(201).json({ day: mapDay(day) });
 });
 
@@ -571,6 +574,7 @@ daysRouter.put('/:id', requirePlanner, (req, res) => {
   if (v.error) return res.status(400).json({ message: v.error });
   updateDayTx(day, v);
   const updated = ensureCurrent(getDay(day.id));
+  if (updated.organizer_id) notifyOrganizerAssigned(updated, updated.organizer_id);
   res.json({ day: mapDay(updated) });
 });
 
