@@ -2,9 +2,14 @@
 #
 # update-essen-nigefa.sh
 # ------------------------------------------------------------------------------
-# Aktualisiert eine bestehende Installation der Essensbestellungs-App
-# (eingerichtet mit install-essen-nigefa.sh) auf den Stand dieses Repositorys –
-# ohne Datenverlust.
+# Aktualisiert eine bestehende, mit install-essen-nigefa.sh eingerichtete
+# Installation auf einem EIGENSTÄNDIGEN Ubuntu Server (systemd) – ohne
+# Datenverlust.
+#
+# >> NICHT für Plesk verwenden! <<
+# Dieses Skript benötigt root und steuert einen systemd-Dienst. Das Update
+# einer Plesk-Installation erfolgt über SSH/Git + Node.js-Erweiterung –
+# Anleitung: docs/plesk-installation.md
 #
 # Das Skript
 #   * stoppt den Dienst,

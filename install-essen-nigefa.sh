@@ -2,7 +2,14 @@
 #
 # install-essen-nigefa.sh
 # ------------------------------------------------------------------------------
-# Vollautomatische Installation der Essensbestellungs-App auf Ubuntu Server.
+# Vollautomatische Installation der Essensbestellungs-App auf einem
+# EIGENSTÄNDIGEN Ubuntu Server (VPS/Root-Server OHNE Control-Panel).
+#
+# >> NICHT für Plesk verwenden! <<
+# Dieses Skript benötigt root, installiert Node.js über NodeSource und legt
+# einen systemd-Dienst an. Auf Plesk wird die App stattdessen über die
+# Node.js-Erweiterung (Passenger) betrieben – Anleitung:
+#   docs/plesk-installation.md
 #
 # Das Skript
 #   * installiert alle Systempakete (Node.js, Build-Tools, git, rsync),
