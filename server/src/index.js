@@ -20,7 +20,11 @@ import ssoRouter, { wellKnownHandler } from './routes/sso.js';
 import pushRouter from './routes/push.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT || 3001);
+// PORT roh übernehmen (nicht per Number() erzwingen): Phusion Passenger –
+// die Engine hinter Plesks Node.js-Erweiterung – kann statt einer Portnummer
+// den Pfad eines Unix-Sockets in process.env.PORT übergeben. Node.js'
+// listen() akzeptiert beides (Portnummer als String oder Socket-Pfad).
+const PORT = process.env.PORT || 3001;
 
 initDb();
 
@@ -105,6 +109,8 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   res.status(500).json({ message: 'Interner Serverfehler.' });
 });
 
+// Unter Phusion Passenger (Plesk) fängt die Engine listen() ab und verbindet
+// die App mit ihrem eigenen Socket – der übergebene Wert ist dann zweitrangig.
 app.listen(PORT, () => {
-  console.log(`Essensbestellung-Server läuft auf http://localhost:${PORT}`);
+  console.log(`Essensbestellung-Server läuft (Port/Socket: ${PORT}).`);
 });
