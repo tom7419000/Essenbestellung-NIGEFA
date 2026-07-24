@@ -100,10 +100,20 @@ unter **Design**. Die Kopfleiste zeigt allein das Logo (ohne Texttitel); die
 Navigation bleibt auf dem Desktop einzeilig und wird erst auf schmaleren
 Bildschirmen zum Menü zusammengefasst.
 
-## Automatische Installation auf Ubuntu Server
+## Betrieb unter Plesk
+
+Wird der Server über **Plesk** verwaltet (Node.js-Erweiterung/Passenger), gilt
+**nicht** das systemd-Skript unten, sondern die eigene Schritt-für-Schritt-
+Anleitung: **[docs/plesk-installation.md](docs/plesk-installation.md)**. Kurz:
+Application Startup File = `server/src/index.js`, Document Root = `client/dist`,
+Abhängigkeiten/Build über `npm run plesk:build`, SQLite-Datenverzeichnis via
+`DATA_DIR`, erstes Admin-Konto über `npm run create-admin --prefix server`, und
+eine zeitgesteuerte Aufgabe für `server/src/tasks.js`.
+
+## Automatische Installation auf Ubuntu Server (ohne Control-Panel)
 
 Das Skript [`install-essen-nigefa.sh`](install-essen-nigefa.sh) richtet die App auf
-einem Ubuntu Server vollautomatisch als Dienst ein – inklusive Node.js-Installation,
+einem eigenständigen Ubuntu Server (ohne Plesk o. Ä.) vollautomatisch als Dienst ein – inklusive Node.js-Installation,
 Frontend-Build, Datenbank und **systemd-Dienst mit Autostart**. Es müssen keine Dienste
 manuell angelegt werden.
 
@@ -155,6 +165,7 @@ Befehl zur Wiederherstellung im Fehlerfall.
 | [docs/api-endpunkte.md](docs/api-endpunkte.md) | REST-API-Referenz mit Beispielen |
 | [docs/sso-entra-id.md](docs/sso-entra-id.md) | Single Sign-On mit Microsoft Entra ID einrichten (optional) |
 | [docs/speisekarten-import.md](docs/speisekarten-import.md) | Speisekarten importieren: CSV, Lieferando, Gastromia |
+| [docs/plesk-installation.md](docs/plesk-installation.md) | Betrieb unter Plesk (Node.js-Erweiterung/Passenger): Schritt-für-Schritt-Anleitung |
 
 ## Projektstruktur
 
