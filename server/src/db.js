@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   price_cents   INTEGER,
   category      TEXT NOT NULL DEFAULT '',
   allergens     TEXT NOT NULL DEFAULT '',
+  weekdays      TEXT NOT NULL DEFAULT '',
   is_active     INTEGER NOT NULL DEFAULT 1,
   UNIQUE (restaurant_id, name)
 );
@@ -185,6 +186,15 @@ const migrations = [
     up() {
       if (!columnExists('days', 'auto_created')) {
         db.exec('ALTER TABLE days ADD COLUMN auto_created INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+  },
+  {
+    version: 8,
+    name: 'menu_items.weekdays (Tagesessen: Bindung an Wochentage)',
+    up() {
+      if (!columnExists('menu_items', 'weekdays')) {
+        db.exec("ALTER TABLE menu_items ADD COLUMN weekdays TEXT NOT NULL DEFAULT ''");
       }
     },
   },

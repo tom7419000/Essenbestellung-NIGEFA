@@ -413,6 +413,26 @@ input:focus, select:focus, textarea:focus {
 .auto-rotation-hint { margin: 0.5rem 0 0; font-size: 0.85rem; }
 .holidays-input { font-family: inherit; resize: vertical; min-height: 4.5rem; }
 
+.weekday-picker { display: flex; flex-direction: column; gap: 0.35rem; }
+.weekday-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.weekday-chip {
+  min-width: 2.1rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface, transparent);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.weekday-chip.on { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent); }
+.weekday-picker-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.weekday-hint { font-size: 0.8rem; }
+.add-item-weekdays { display: flex; flex-direction: column; gap: 0.25rem; }
+.add-item-weekdays > span { font-size: 0.8rem; }
+.menu-item-weekdays { margin-left: 0.4rem; font-size: 0.72rem; vertical-align: middle; }
+
 .inline-select { flex-direction: row; align-items: center; gap: 0.5rem; }
 
 .input-price { width: 7.5rem; }

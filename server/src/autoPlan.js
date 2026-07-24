@@ -1,5 +1,5 @@
 import { db, getSetting, setSetting } from './db.js';
-import { zonedIso, todayStr, TZ } from './util.js';
+import { zonedIso, todayStr, isoWeekday, TZ } from './util.js';
 
 // Automatische Tagesplanung (Mo–Fr): Konfiguration liegt als JSON in den
 // Einstellungen (Schlüssel auto_plan_config). Wochenenden werden generell
@@ -35,13 +35,6 @@ function defaultConfig() {
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-// ISO-Wochentag (1 = Mo … 7 = So) für ein reines Datum, TZ-unabhängig.
-export function isoWeekday(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = So … 6 = Sa
-  return wd === 0 ? 7 : wd;
-}
 
 function epochDay(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);

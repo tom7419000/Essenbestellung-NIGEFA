@@ -21,7 +21,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, Restaurants mit Stimmen, eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
 | POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. |
 | DELETE | `/days/:id/vote` | 👤 | Eigene Stimme zurückziehen (nur Phase 1) |
-| POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemId, note}`. Erneuter Aufruf ändert die Bestellung; das Gericht muss zum Gewinner-Restaurant gehören. |
+| POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemId, note}`. Erneuter Aufruf ändert die Bestellung; das Gericht muss zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
 | DELETE | `/days/:id/order` | 👤 | Eigene Bestellung löschen (nur Phase 2) |
 
 ## Organisator
@@ -60,11 +60,11 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | PUT | `/restaurants/:id` | 🔑 | Restaurant ändern (inkl. `isActive`) |
 | DELETE | `/restaurants/:id` | 🔑 | Restaurant löschen; wird es bereits verwendet, stattdessen deaktivieren |
 | GET | `/restaurants/:id/menu` | 👤 | Speisekarte (`?all=1` als Admin: inkl. deaktivierter Gerichte) |
-| POST | `/restaurants/:id/menu` | 🔑 | Gericht anlegen. Body: `{name, category, description, allergens, priceCents}` |
+| POST | `/restaurants/:id/menu` | 🔑 | Gericht anlegen. Body: `{name, category, description, allergens, priceCents, weekdays[]}` (`weekdays`: ISO-Wochentage 1–7, leer = jeden Tag) |
 | POST | `/restaurants/:id/menu/import-csv` | 🔑 | CSV-Import. Body: `{csv, mode: "append"\|"replace"}` → Statistik + Fehlzeilen |
 | POST | `/restaurants/:id/menu/import-items` | 🔑 | Geprüfte Gerichte aus der Import-Vorschau übernehmen. Body: `{mode, items[]}` |
 | POST | `/menu-import/preview` | 🔑 | Speisekarte einer externen Seite auslesen (Lieferando oder Gastromia, siehe [speisekarten-import.md](speisekarten-import.md)). Body: `{url}` → `{provider, restaurantName, items[], warnings[]}` (noch ohne Speichern) |
-| PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`) |
+| PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`, `weekdays[]`) |
 | DELETE | `/menu-items/:id` | 🔑 | Gericht löschen; bereits bestellte Gerichte werden deaktiviert |
 | GET | `/settings` | 🗓️ | Standard-Abstimmungszeiten und Organisator-Modus |
 | PUT | `/settings` | 🗓️ | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode, organizerAssignMinutes}` |

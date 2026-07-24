@@ -48,6 +48,9 @@ erDiagram
         text name "eindeutig je Restaurant"
         text description
         int price_cents "Preis in Cent, optional"
+        text category
+        text allergens
+        text weekdays "ISO-Wochentage (CSV), leer = jeden Tag"
         int is_active
     }
 
@@ -98,7 +101,7 @@ erDiagram
 | --- | --- |
 | `users` | Benutzerkonten mit Rolle (`user`/`admin`) und dem additiven Flag `can_plan` (Berechtigung **„Planung"**: Tage anlegen/ändern/absagen und Planungs-Standardzeiten, aber keine Benutzer-/Restaurant-/Design-/SSO-Verwaltung). Nach außen erscheinen so drei Rollen: `user`, `planung`, `admin`. Die Organisator-Rolle ist keine globale Rolle, sondern eine **Zuweisung pro Tag** (`days.organizer_id`). |
 | `restaurants` | Stammdaten der Restaurants/Lieferdienste. Statt harter Löschung werden verwendete Restaurants deaktiviert (`is_active = 0`), damit die Historie erhalten bleibt. |
-| `menu_items` | Speisekarte je Restaurant, Preis in Cent (vermeidet Rundungsfehler). |
+| `menu_items` | Speisekarte je Restaurant, Preis in Cent (vermeidet Rundungsfehler). `weekdays` (CSV der ISO-Wochentage, leer = jeden Tag) bindet „Tagesessen" an bestimmte Wochentage – nur dann sichtbar/bestellbar; die Prüfung erfolgt serverseitig. |
 | `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. `auto_created = 1` kennzeichnet Tage aus der automatischen Planung; sie bleiben normal (manuell) bearbeitbar. |
 | `day_restaurants` | Welche Restaurants an einem Tag zur Wahl stehen (`position` = Anzeige-Reihenfolge und Tie-Break bei Stimmengleichheit). |
 | `restaurant_votes` | Phase-1-Stimmen. `UNIQUE (day_id, user_id)` erzwingt eine Stimme pro Person und Tag; erneutes Abstimmen ändert die Stimme (Upsert). |
@@ -141,6 +144,7 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 5 | `users.token_version` (serverseitige Token-Invalidierung bei Logout/Passwortänderung) |
 | 6 | `users.can_plan` (Berechtigung „Planung": Tagesplanung ohne weitere Admin-Rechte) |
 | 7 | `days.auto_created` (Kennzeichnung automatisch erzeugter Tage) |
+| 8 | `menu_items.weekdays` (Tagesessen: Bindung an Wochentage) |
 
 ## Zeitzonen
 

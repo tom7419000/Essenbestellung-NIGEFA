@@ -14,13 +14,20 @@ Schutz der Historie nur deaktiviert).
 Format (Kopfzeile erforderlich, Spaltenreihenfolge egal, nur „Name“ ist Pflicht):
 
 ```csv
-Kategorie;Name;Beschreibung;Preis;Allergene
-Pizza;Pizza Margherita;"Tomaten, Mozzarella, Basilikum";8,50;G
-Salate;Gemischter Salat;Mit Balsamico-Dressing;7,20;
+Kategorie;Name;Beschreibung;Preis;Allergene;Wochentage
+Pizza;Pizza Margherita;"Tomaten, Mozzarella, Basilikum";8,50;G;
+Salate;Gemischter Salat;Mit Balsamico-Dressing;7,20;;
+Tagesessen;Schnitzel mit Pommes;Nur mittwochs;9,80;;Mi
 ```
 
 - Trennzeichen: Semikolon oder Komma (automatisch erkannt), UTF-8 (BOM ok)
 - Preise: `8,50`, `8.50` oder mit €-Zeichen; leer = kein Preis
+- Spalte **`Wochentage`** (optional): bindet ein Gericht an Wochentage – etwa
+  `Mi`, `Mo-Fr` oder `Mo,Mi,Fr`. Leer = an allen Tagen. Ist die Spalte leer
+  und die Kategorie „Tagesessen“, werden die Wochentage aus Name/Beschreibung
+  **automatisch erkannt** (Vorschlag, im Editor korrigierbar). Nur an den
+  hinterlegten Wochentagen ist das Gericht sichtbar und bestellbar
+  (serverseitig geprüft).
 - Fehlerhafte Zeilen werden **übersprungen und mit Zeilennummer gemeldet**,
   gültige Zeilen werden trotzdem importiert
 - Eine Beispiel-Vorlage gibt es als Download direkt in der Import-Karte

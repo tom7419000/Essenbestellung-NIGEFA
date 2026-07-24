@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth, requireAdmin } from '../auth.js';
 import { parseMenuCsv } from '../csv.js';
+import { normalizeWeekdays, parseWeekdayCsv } from '../weekdayParse.js';
 
 function mapRestaurant(r) {
   return {
@@ -25,6 +26,7 @@ function mapItem(i) {
     priceCents: i.price_cents,
     category: i.category,
     allergens: i.allergens,
+    weekdays: parseWeekdayCsv(i.weekdays),
     isActive: !!i.is_active,
   };
 }
@@ -156,6 +158,7 @@ function validateItemInput(body) {
     description: String(body?.description || '').trim().slice(0, 300),
     category: String(body?.category || '').trim().slice(0, 60),
     allergens: String(body?.allergens || '').trim().slice(0, 120),
+    weekdays: normalizeWeekdays(body?.weekdays),
     priceCents,
   };
 }
@@ -171,23 +174,32 @@ const saveImportedItems = db.transaction((restaurantId, items, mode) => {
   const importedNames = new Set();
 
   const insert = db.prepare(
-    `INSERT INTO menu_items (restaurant_id, name, description, price_cents, category, allergens)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO menu_items (restaurant_id, name, description, price_cents, category, allergens, weekdays)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const update = db.prepare(
-    `UPDATE menu_items SET name = ?, description = ?, price_cents = ?, category = ?, allergens = ?, is_active = 1
+    `UPDATE menu_items SET name = ?, description = ?, price_cents = ?, category = ?, allergens = ?, weekdays = ?, is_active = 1
      WHERE id = ?`
   );
 
   for (const it of items) {
     const lower = it.name.toLowerCase();
     importedNames.add(lower);
+    const weekdays = it.weekdays || '';
     const found = byLowerName.get(lower);
     if (found) {
-      update.run(it.name, it.description, it.priceCents, it.category, it.allergens, found.id);
+      update.run(it.name, it.description, it.priceCents, it.category, it.allergens, weekdays, found.id);
       stats.updated += 1;
     } else {
-      const info = insert.run(restaurantId, it.name, it.description, it.priceCents, it.category, it.allergens);
+      const info = insert.run(
+        restaurantId,
+        it.name,
+        it.description,
+        it.priceCents,
+        it.category,
+        it.allergens,
+        weekdays
+      );
       stats.created += 1;
       // Neu angelegte Namen merken, damit Duplikate im selben Import
       // aktualisieren statt an der UNIQUE-Bedingung zu scheitern.
@@ -221,10 +233,10 @@ restaurantsRouter.post('/:id/menu', requireAdmin, (req, res) => {
   try {
     const info = db
       .prepare(
-        `INSERT INTO menu_items (restaurant_id, name, description, price_cents, category, allergens)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO menu_items (restaurant_id, name, description, price_cents, category, allergens, weekdays)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(restaurant.id, v.name, v.description, v.priceCents, v.category, v.allergens);
+      .run(restaurant.id, v.name, v.description, v.priceCents, v.category, v.allergens, v.weekdays);
     const item = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({ item: mapItem(item) });
   } catch (e) {
@@ -298,9 +310,9 @@ menuItemsRouter.put('/:id', (req, res) => {
   const isActive = req.body?.isActive === undefined ? item.is_active : req.body.isActive ? 1 : 0;
   try {
     db.prepare(
-      `UPDATE menu_items SET name = ?, description = ?, price_cents = ?, category = ?, allergens = ?, is_active = ?
+      `UPDATE menu_items SET name = ?, description = ?, price_cents = ?, category = ?, allergens = ?, weekdays = ?, is_active = ?
        WHERE id = ?`
-    ).run(v.name, v.description, v.priceCents, v.category, v.allergens, isActive, item.id);
+    ).run(v.name, v.description, v.priceCents, v.category, v.allergens, v.weekdays, isActive, item.id);
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {
       return res.status(409).json({ message: 'Dieses Gericht existiert bereits für das Restaurant.' });

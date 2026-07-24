@@ -1,3 +1,5 @@
+import { detectWeekdays, normalizeWeekdays } from './weekdayParse.js';
+
 // Kleiner CSV-Parser ohne Zusatzabhängigkeit: unterstützt Anführungszeichen
 // (inkl. ""-Escapes), CRLF und erkennt das Trennzeichen (Semikolon bevorzugt,
 // da im deutschen Excel-Export üblich).
@@ -86,7 +88,22 @@ const HEADER_ALIASES = {
   allergene: 'allergens',
   allergens: 'allergens',
   zusatzstoffe: 'allergens',
+  wochentag: 'weekdays',
+  wochentage: 'weekdays',
+  weekdays: 'weekdays',
 };
+
+// Nur für „Tagesessen" automatisch Wochentage aus dem Text erkennen (Vorschlag),
+// damit ein normales Gericht mit „Freitag" in der Beschreibung nicht versehentlich
+// eingeschränkt wird.
+function autoWeekdays(record) {
+  const explicit = normalizeWeekdays(record.weekdays);
+  if (explicit) return explicit;
+  if (/tagesessen|tagesgericht|tagesteller/i.test(record.category || '')) {
+    return detectWeekdays(`${record.name || ''} ${record.description || ''}`);
+  }
+  return '';
+}
 
 // CSV-Text -> { items, errors } gemäß Spaltenformat
 // Kategorie;Name;Beschreibung;Preis;Allergene (Kopfzeile erforderlich,
@@ -138,6 +155,7 @@ export function parseMenuCsv(text) {
       description: (record.description || '').slice(0, 300),
       category: (record.category || '').slice(0, 60),
       allergens: (record.allergens || '').slice(0, 120),
+      weekdays: autoWeekdays(record),
       priceCents,
     });
   });

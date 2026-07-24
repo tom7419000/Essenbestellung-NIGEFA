@@ -191,6 +191,10 @@ Befehl zur Wiederherstellung im Fehlerfall.
   der Phasenwechsel erscheint ohne manuelles Neuladen.
 - **Eine Stimme / eine Bestellung pro Tag** wird per UNIQUE-Constraint in der Datenbank
   garantiert; erneutes Abstimmen/Bestellen aktualisiert per Upsert.
+- **Tagesessen mit Wochentags-Bindung:** Gerichte lassen sich an Wochentage binden
+  (Feld `weekdays`, leer = jeden Tag); für „Tagesessen“ wird der Wochentag beim
+  Import auch aus dem Text vorgeschlagen. Solche Gerichte sind nur am passenden
+  Wochentag sichtbar und bestellbar – die Prüfung erfolgt serverseitig.
 - **Historie bleibt erhalten:** Restaurants und Gerichte, die bereits verwendet wurden,
   werden beim „Löschen“ deaktiviert statt entfernt.
 - **Sicherheit:** bcrypt-Hashes, JWT mit 12 h Laufzeit, rollenbasierte Middleware,

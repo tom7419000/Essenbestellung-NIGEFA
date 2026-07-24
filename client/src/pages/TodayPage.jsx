@@ -11,6 +11,7 @@ import {
   fmtDateLong,
   fmtPrice,
   fmtTime,
+  formatWeekdays,
   safeHttpUrl,
   statusLabel,
 } from '../format.js';
@@ -270,6 +271,11 @@ function OrderPanel({ data, reload }) {
                   />
                   <span className="menu-item-name">
                     {item.name}
+                    {item.weekdays && item.weekdays.length > 0 && (
+                      <span className="badge badge-plan menu-item-weekdays">
+                        Tagesessen · {formatWeekdays(item.weekdays)}
+                      </span>
+                    )}
                     {(item.description || item.allergens) && (
                       <small className="muted">
                         {item.description}

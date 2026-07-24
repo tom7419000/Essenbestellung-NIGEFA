@@ -5,6 +5,13 @@ export function todayStr(tz = TZ) {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: tz }).format(new Date());
 }
 
+// ISO-Wochentag (1 = Montag … 7 = Sonntag) für ein reines Datum „YYYY-MM-DD".
+export function isoWeekday(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = So … 6 = Sa
+  return wd === 0 ? 7 : wd;
+}
+
 function tzOffsetMinutes(tz, date) {
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,

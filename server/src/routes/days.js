@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth, requireAdmin, requirePlanner } from '../auth.js';
 import { ensureCurrent, resolveOpenDays } from '../dayLogic.js';
-import { todayStr } from '../util.js';
+import { todayStr, isoWeekday } from '../util.js';
 import { generateAutoPlan, getAutoPlanConfig, setAutoPlanConfig } from '../autoPlan.js';
+import { parseWeekdayCsv, weekdaysAllow } from '../weekdayParse.js';
 
 export const ORDER_STATUS = ['eingegangen', 'bestellt', 'geliefert', 'storniert'];
 
@@ -42,14 +43,18 @@ function dayRestaurantsWithVotes(dayId) {
     .all(dayId);
 }
 
-function menuOf(restaurantId) {
+// Speisekarte des Restaurants. Ist ein Wochentag angegeben, werden an diesen
+// Wochentag gebundene Gerichte (Tagesessen) ausgefiltert, die dort nicht gelten.
+function menuOf(restaurantId, weekday = null) {
   return db
     .prepare(
-      `SELECT id, name, description, price_cents AS priceCents, category, allergens
+      `SELECT id, name, description, price_cents AS priceCents, category, allergens, weekdays
        FROM menu_items WHERE restaurant_id = ? AND is_active = 1
        ORDER BY category COLLATE NOCASE, name COLLATE NOCASE`
     )
-    .all(restaurantId);
+    .all(restaurantId)
+    .filter((it) => weekday == null || weekdaysAllow(it.weekdays, weekday))
+    .map((it) => ({ ...it, weekdays: parseWeekdayCsv(it.weekdays) }));
 }
 
 function myOrderOf(dayId, userId) {
@@ -127,7 +132,9 @@ daysRouter.get('/today', (req, res) => {
     payload.winner = winnerInfo(day.winning_restaurant_id);
     payload.winnerVotes =
       payload.restaurants.find((r) => r.id === day.winning_restaurant_id)?.votes ?? 0;
-    payload.menu = payload.winner.hasMenu ? menuOf(day.winning_restaurant_id) : [];
+    payload.menu = payload.winner.hasMenu
+      ? menuOf(day.winning_restaurant_id, isoWeekday(day.date))
+      : [];
     payload.myOrder = myOrderOf(day.id, req.user.id);
     payload.orderCount = db
       .prepare("SELECT COUNT(*) AS n FROM orders WHERE day_id = ? AND status != 'storniert'")
@@ -194,6 +201,12 @@ daysRouter.post('/:id/order', (req, res) => {
     .get(menuItemId);
   if (!item || item.restaurant_id !== day.winning_restaurant_id) {
     return res.status(400).json({ message: 'Bitte ein Gericht des Gewinner-Restaurants wählen.' });
+  }
+  // Tagesessen sind nur an ihren Wochentagen bestellbar (serverseitige Prüfung).
+  if (!weekdaysAllow(item.weekdays, isoWeekday(day.date))) {
+    return res
+      .status(409)
+      .json({ message: 'Dieses Tagesessen ist an diesem Wochentag nicht verfügbar.' });
   }
   db.prepare(
     `INSERT INTO orders (day_id, user_id, menu_item_id, note) VALUES (?, ?, ?, ?)

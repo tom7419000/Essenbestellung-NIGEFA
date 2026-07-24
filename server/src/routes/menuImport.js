@@ -2,6 +2,17 @@ import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../auth.js';
 import { rateLimit } from '../rateLimit.js';
 import { ImportError, importMenuFromUrl } from '../menuImport/index.js';
+import { detectWeekdays, parseWeekdayCsv } from '../weekdayParse.js';
+
+// Vorschlag für Wochentags-Bindung nur bei „Tagesessen"-Kategorien.
+// Rückgabe als Array von ISO-Nummern (konsistent zur übrigen API).
+function withWeekdays(item) {
+  const isDaily = /tagesessen|tagesgericht|tagesteller/i.test(item.category || '');
+  const weekdays = isDaily
+    ? parseWeekdayCsv(detectWeekdays(`${item.name || ''} ${item.description || ''}`))
+    : [];
+  return { ...item, weekdays };
+}
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -21,7 +32,7 @@ const importLimiter = rateLimit({
 router.post('/preview', importLimiter, async (req, res) => {
   try {
     const result = await importMenuFromUrl(req.body?.url);
-    res.json(result);
+    res.json({ ...result, items: (result.items || []).map(withWeekdays) });
   } catch (e) {
     if (e instanceof ImportError) {
       return res.status(422).json({ message: e.message });

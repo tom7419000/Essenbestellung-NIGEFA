@@ -12,10 +12,66 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
-import { fmtPrice, parsePriceInput, priceInputValue } from '../../format.js';
+import {
+  WEEKDAYS_ALL,
+  detectWeekdaysFromText,
+  fmtPrice,
+  formatWeekdays,
+  parsePriceInput,
+  priceInputValue,
+} from '../../format.js';
 
 const EMPTY_RESTAURANT = { name: '', description: '', phone: '', website: '', hasMenu: true };
-const EMPTY_ITEM = { name: '', category: '', description: '', price: '', allergens: '' };
+const EMPTY_ITEM = { name: '', category: '', description: '', price: '', allergens: '', weekdays: [] };
+
+// Kompakte Wochentags-Auswahl (Mo–So). Leere Auswahl = an allen Tagen gültig.
+function WeekdayPicker({ value, onChange, description }) {
+  const set = new Set(value || []);
+  function toggle(n) {
+    const next = new Set(set);
+    if (next.has(n)) next.delete(n);
+    else next.add(n);
+    onChange([...next].sort((a, b) => a - b));
+  }
+  return (
+    <div className="weekday-picker">
+      <div className="weekday-chips">
+        {WEEKDAYS_ALL.map((w) => (
+          <button
+            key={w.n}
+            type="button"
+            className={`weekday-chip${set.has(w.n) ? ' on' : ''}`}
+            aria-pressed={set.has(w.n)}
+            title={w.long}
+            onClick={() => toggle(w.n)}
+          >
+            {w.short}
+          </button>
+        ))}
+      </div>
+      <div className="weekday-picker-actions">
+        {description !== undefined && (
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => onChange(detectWeekdaysFromText(description))}
+            title="Wochentage aus der Beschreibung erkennen"
+          >
+            aus Beschreibung
+          </button>
+        )}
+        {set.size > 0 && (
+          <button type="button" className="btn btn-sm" onClick={() => onChange([])}>
+            alle Tage
+          </button>
+        )}
+        <span className="muted weekday-hint">
+          {set.size === 0 ? 'gilt an allen Tagen' : `nur ${formatWeekdays([...set])}`}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function RestaurantsAdmin() {
   const [restaurants, setRestaurants] = useState(null);
@@ -215,6 +271,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
           category: itemForm.category,
           description: itemForm.description,
           allergens: itemForm.allergens,
+          weekdays: itemForm.weekdays,
           priceCents,
         },
       });
@@ -233,6 +290,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
       category: item.category || '',
       description: item.description,
       allergens: item.allergens || '',
+      weekdays: item.weekdays || [],
       price: priceInputValue(item.priceCents),
       isActive: item.isActive,
     });
@@ -253,6 +311,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
           category: itemEdit.category,
           description: itemEdit.description,
           allergens: itemEdit.allergens,
+          weekdays: itemEdit.weekdays,
           priceCents,
           isActive: itemEdit.isActive,
         },
@@ -349,6 +408,7 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                   <th>Gericht</th>
                   <th>Kategorie</th>
                   <th>Beschreibung</th>
+                  <th>Wochentage</th>
                   <th className="num">Preis</th>
                   <th>Status</th>
                   <th className="actions">Aktionen</th>
@@ -381,6 +441,13 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                         <input
                           value={itemEdit.description}
                           onChange={(e) => setItemEdit({ ...itemEdit, description: e.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <WeekdayPicker
+                          value={itemEdit.weekdays}
+                          description={itemEdit.description}
+                          onChange={(weekdays) => setItemEdit({ ...itemEdit, weekdays })}
                         />
                       </td>
                       <td className="num">
@@ -422,6 +489,13 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
                       </td>
                       <td className="muted">{item.category || '–'}</td>
                       <td className="muted">{item.description || '–'}</td>
+                      <td>
+                        {item.weekdays && item.weekdays.length > 0 ? (
+                          <span className="badge badge-plan">{formatWeekdays(item.weekdays)}</span>
+                        ) : (
+                          <span className="muted">jeden Tag</span>
+                        )}
+                      </td>
                       <td className="num">{fmtPrice(item.priceCents)}</td>
                       <td>
                         {item.isActive ? (
@@ -475,6 +549,14 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
             value={itemForm.allergens}
             onChange={(e) => setItemForm({ ...itemForm, allergens: e.target.value })}
           />
+          <label className="add-item-weekdays">
+            <span className="muted">Wochentage (Tagesessen, leer = jeden Tag)</span>
+            <WeekdayPicker
+              value={itemForm.weekdays}
+              description={itemForm.description}
+              onChange={(weekdays) => setItemForm({ ...itemForm, weekdays })}
+            />
+          </label>
           <button className="btn btn-primary">
             <FontAwesomeIcon icon={faPlus} /> Hinzufügen
           </button>
@@ -488,10 +570,11 @@ function RestaurantEditor({ restaurantId, onChanged, onError }) {
 }
 
 const CSV_TEMPLATE = [
-  'Kategorie;Name;Beschreibung;Preis;Allergene',
-  'Pizza;Pizza Margherita;"Tomaten, Mozzarella, Basilikum";8,50;G',
-  'Pizza;Pizza Salami;"Tomaten, Mozzarella, Salami";9,50;"G,2,3"',
-  'Salate;Gemischter Salat;Mit Balsamico-Dressing;7,20;',
+  'Kategorie;Name;Beschreibung;Preis;Allergene;Wochentage',
+  'Pizza;Pizza Margherita;"Tomaten, Mozzarella, Basilikum";8,50;G;',
+  'Pizza;Pizza Salami;"Tomaten, Mozzarella, Salami";9,50;"G,2,3";',
+  'Salate;Gemischter Salat;Mit Balsamico-Dressing;7,20;;',
+  'Tagesessen;Schnitzel mit Pommes;Nur mittwochs;9,80;;Mi',
   '',
 ].join('\n');
 
@@ -537,9 +620,12 @@ function CsvImportCard({ restaurantId, onDone, onError }) {
     <div className="card">
       <h3>Speisekarte per CSV importieren</h3>
       <p className="muted">
-        Kopfzeile erforderlich: <code>Kategorie;Name;Beschreibung;Preis;Allergene</code> – nur
-        „Name“ ist Pflicht, Trennzeichen Semikolon oder Komma, Preis z. B. „8,50“. Fehlerhafte
-        Zeilen werden übersprungen und unten aufgelistet.
+        Kopfzeile erforderlich:{' '}
+        <code>Kategorie;Name;Beschreibung;Preis;Allergene;Wochentage</code> – nur „Name“ ist
+        Pflicht, Trennzeichen Semikolon oder Komma, Preis z. B. „8,50“. Spalte „Wochentage“
+        optional (z. B. <code>Mi</code> oder <code>Mo-Fr</code>); bei Kategorie „Tagesessen“ wird
+        sie sonst aus der Beschreibung erkannt. Fehlerhafte Zeilen werden übersprungen und unten
+        aufgelistet.
       </p>
       <div className="row wrap">
         <label className="checkbox">
@@ -621,6 +707,7 @@ function UrlImportCard({ restaurantId, onDone }) {
           category: item.category || '',
           name: item.name,
           description: item.description || '',
+          weekdays: item.weekdays || [],
           price: priceInputValue(item.priceCents),
         }))
       );
@@ -662,6 +749,7 @@ function UrlImportCard({ restaurantId, onDone }) {
         category: r.category,
         description: r.description,
         allergens: '',
+        weekdays: r.weekdays || [],
         priceCents,
       });
     }
@@ -771,6 +859,7 @@ function UrlImportCard({ restaurantId, onDone }) {
                   <th>Kategorie</th>
                   <th>Gericht</th>
                   <th>Beschreibung</th>
+                  <th>Wochentage</th>
                   <th className="num">Preis</th>
                 </tr>
               </thead>
@@ -795,6 +884,13 @@ function UrlImportCard({ restaurantId, onDone }) {
                     </td>
                     <td className="muted import-preview-desc" title={r.description}>
                       {r.description || '–'}
+                    </td>
+                    <td>
+                      <WeekdayPicker
+                        value={r.weekdays}
+                        description={r.description}
+                        onChange={(weekdays) => updateRow(i, { weekdays })}
+                      />
                     </td>
                     <td className="num">
                       <input

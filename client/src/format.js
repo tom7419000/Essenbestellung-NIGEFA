@@ -87,3 +87,74 @@ export function timeInputValue(iso) {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
+
+// ---------- Wochentage (Tagesessen) ----------
+// ISO-Nummern: 1 = Montag … 7 = Sonntag.
+
+export const WEEKDAYS_ALL = [
+  { n: 1, short: 'Mo', long: 'Montag' },
+  { n: 2, short: 'Di', long: 'Dienstag' },
+  { n: 3, short: 'Mi', long: 'Mittwoch' },
+  { n: 4, short: 'Do', long: 'Donnerstag' },
+  { n: 5, short: 'Fr', long: 'Freitag' },
+  { n: 6, short: 'Sa', long: 'Samstag' },
+  { n: 7, short: 'So', long: 'Sonntag' },
+];
+
+// Array von ISO-Nummern -> "Mo, Mi" (leer = an allen Tagen).
+export function formatWeekdays(weekdays, empty = 'jeden Tag') {
+  if (!weekdays || weekdays.length === 0) return empty;
+  return [...weekdays]
+    .sort((a, b) => a - b)
+    .map((n) => WEEKDAYS_ALL.find((w) => w.n === n)?.short || n)
+    .join(', ');
+}
+
+// Client-seitige Wochentags-Erkennung (Vorschlag). Der Server bleibt die
+// verbindliche Quelle; dies dient nur der „aus Beschreibung"-Schaltfläche.
+const WD_FULL = {
+  montag: 1,
+  dienstag: 2,
+  mittwoch: 3,
+  donnerstag: 4,
+  freitag: 5,
+  samstag: 6,
+  sonnabend: 6,
+  sonntag: 7,
+};
+const WD_SHORT = { mo: 1, di: 2, mi: 3, do: 4, fr: 5, sa: 6, so: 7 };
+const WD_TOKEN =
+  '(?:montags?|montagen|dienstags?|mittwochs?|donnerstags?|freitags?|samstags?|sonnabends?|sonntags?|mo|di|mi|do|fr|sa|so)';
+
+function wdTokenToIso(tok) {
+  const t = tok.toLowerCase();
+  for (const name of Object.keys(WD_FULL)) {
+    if (t === name || t === `${name}s` || t === `${name}en`) return WD_FULL[name];
+  }
+  return WD_SHORT[t] ?? null;
+}
+
+export function detectWeekdaysFromText(text) {
+  const s = String(text || '');
+  if (!s.trim()) return [];
+  const found = new Set();
+  const rangeRe = new RegExp(`(${WD_TOKEN})\\s*(?:-|–|—|bis)\\s*(${WD_TOKEN})`, 'gi');
+  const rest = s.replace(rangeRe, (m, a, b) => {
+    const from = wdTokenToIso(a);
+    const to = wdTokenToIso(b);
+    if (from != null && to != null) {
+      if (from <= to) for (let d = from; d <= to; d += 1) found.add(d);
+      else {
+        found.add(from);
+        found.add(to);
+      }
+    }
+    return ' ';
+  });
+  const singles = rest.match(new RegExp(`\\b${WD_TOKEN}\\b`, 'gi')) || [];
+  for (const tok of singles) {
+    const iso = wdTokenToIso(tok);
+    if (iso != null) found.add(iso);
+  }
+  return [...found].sort((a, b) => a - b);
+}
