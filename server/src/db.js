@@ -5,7 +5,13 @@ import Database from 'better-sqlite3';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const dataDir = path.resolve(__dirname, '../data');
+// Datenverzeichnis (SQLite-Datei, JWT-Secret, Branding-Uploads). Standardmäßig
+// server/data; per DATA_DIR frei wählbar. Auf Plesk empfiehlt sich ein Pfad
+// AUSSERHALB des Document Root (z. B. .../essenportal-data), damit die
+// Datenbank nicht über die Domain erreichbar ist und im Backup landet.
+export const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(__dirname, '../data');
 fs.mkdirSync(dataDir, { recursive: true });
 
 export const db = new Database(path.join(dataDir, 'app.db'));
