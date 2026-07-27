@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faBookOpen,
   faCartShopping,
   faCheck,
   faCircleCheck,
@@ -208,6 +209,7 @@ function ParticipationPanel({ data, reload }) {
 function VotePanel({ data, reload }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [menuFor, setMenuFor] = useState(null);
   const maxVotes = Math.max(0, ...data.restaurants.map((r) => r.votes));
 
   async function vote(restaurantId) {
@@ -247,6 +249,13 @@ function VotePanel({ data, reload }) {
                   {r.name} {leader && <span title="Führt aktuell">🏆</span>}
                 </h3>
                 {r.description && <p className="muted">{r.description}</p>}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm option-menu-btn"
+                  onClick={() => setMenuFor(r)}
+                >
+                  <FontAwesomeIcon icon={faBookOpen} /> Speisekarte
+                </button>
               </div>
               <div className="option-side">
                 <span className="votes-badge">
@@ -265,7 +274,92 @@ function VotePanel({ data, reload }) {
           );
         })}
       </div>
+      {menuFor && (
+        <MenuModal dayId={data.day.id} restaurant={menuFor} onClose={() => setMenuFor(null)} />
+      )}
     </section>
+  );
+}
+
+// Speisekarten-Vorschau (Modal) für ein Restaurant in Phase 1. Schließt per
+// X-Button, Klick außerhalb und ESC. Öffnet sich getrennt vom Abstimm-Button,
+// damit das Ansehen der Karte nicht versehentlich eine Stimme abgibt.
+function MenuModal({ dayId, restaurant, onClose }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.classList.add('no-scroll');
+    let active = true;
+    api(`/days/${dayId}/menu/${restaurant.id}`)
+      .then((d) => active && setData(d))
+      .catch((e) => active && setError(e.message));
+    return () => {
+      active = false;
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('no-scroll');
+    };
+  }, [dayId, restaurant.id, onClose]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Speisekarte ${restaurant.name}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h2>{restaurant.name}</h2>
+          <button className="btn btn-ghost" aria-label="Schließen" onClick={onClose}>
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        </div>
+        <div className="modal-body">
+          {error && <div className="alert">{error}</div>}
+          {!data && !error && <div className="page-loading">Lädt …</div>}
+          {data &&
+            (!data.restaurant.hasMenu ? (
+              <p className="muted">Keine Speisekarte hinterlegt.</p>
+            ) : data.menu.length === 0 ? (
+              <p className="muted">Für dieses Restaurant sind keine Gerichte hinterlegt.</p>
+            ) : (
+              <div className="menu-list">
+                {groupByCategory(data.menu).map(([category, items]) => (
+                  <div key={category || 'ohne-kategorie'} className="menu-group">
+                    {category && <h3 className="menu-category">{category}</h3>}
+                    {items.map((item) => (
+                      <div key={item.id} className="menu-readonly-item">
+                        <span className="menu-item-name">
+                          {item.name}
+                          {item.weekdays && item.weekdays.length > 0 && (
+                            <span className="badge badge-plan menu-item-weekdays">
+                              Tagesessen · {formatWeekdays(item.weekdays)}
+                            </span>
+                          )}
+                          {(item.description || item.allergens) && (
+                            <small className="muted">
+                              {item.description}
+                              {item.description && item.allergens && ' · '}
+                              {item.allergens && <>Allergene: {item.allergens}</>}
+                            </small>
+                          )}
+                        </span>
+                        <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

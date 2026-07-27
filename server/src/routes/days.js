@@ -375,6 +375,38 @@ daysRouter.delete('/:id/participation', (req, res) => {
   res.json({ ok: true });
 });
 
+// Speisekarte eines zur Wahl stehenden Restaurants (für das Vorschau-Popup in
+// Phase 1). Tagesessen werden für den Wochentag des Tages gefiltert (gleiche
+// Logik wie die Bestellung). Für Restaurants ohne Speisekarte leere Liste.
+daysRouter.get('/:id/menu/:restaurantId', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  const rid = Number(req.params.restaurantId);
+  const opt = db
+    .prepare(
+      `SELECT r.id, r.name, r.description, r.phone, r.website, r.has_menu
+       FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND dr.restaurant_id = ?`
+    )
+    .get(day.id, rid);
+  if (!opt) {
+    return res.status(404).json({ message: 'Dieses Restaurant steht heute nicht zur Wahl.' });
+  }
+  res.json({
+    restaurant: {
+      id: opt.id,
+      name: opt.name,
+      description: opt.description,
+      phone: opt.phone,
+      website: opt.website,
+      hasMenu: !!opt.has_menu,
+    },
+    menu: opt.has_menu ? menuOf(rid, isoWeekday(day.date)) : [],
+  });
+});
+
 // ---------- Freiwillige Organisator-Meldung ----------
 
 daysRouter.post('/:id/volunteer', (req, res) => {
