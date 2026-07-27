@@ -467,12 +467,23 @@ daysRouter.get('/:id/full', (req, res) => {
     openCents: active.filter((o) => !o.paid).reduce((s, o) => s + o.totalCents, 0),
   };
 
+  // Alle Restaurant-Optionen des Tages (inkl. „ohne Speisekarte") in
+  // Anzeige-Reihenfolge – für die Vorbelegung des Bearbeiten-Formulars.
+  // (restaurants oben enthält nur die abstimmbaren Restaurants mit Speisekarte.)
+  const restaurantIds = db
+    .prepare(
+      'SELECT restaurant_id FROM day_restaurants WHERE day_id = ? ORDER BY position ASC, id ASC'
+    )
+    .all(day.id)
+    .map((r) => r.restaurant_id);
+
   res.json({
     day: mapDay(day),
     serverNow: new Date().toISOString(),
     organizerName: organizerNameOf(day),
     winner: day.winning_restaurant_id ? winnerInfo(day.winning_restaurant_id) : null,
     restaurants,
+    restaurantIds,
     orders,
     summary,
     totalCents,

@@ -105,7 +105,9 @@ export default function DaysAdmin() {
         organizerMode: day.organizerMode ?? 'manuell',
         phase1Time: timeInputValue(day.phase1Deadline),
         phase2Time: timeInputValue(day.phase2Deadline),
-        restaurantIds: full.restaurants.map((r) => r.id),
+        // Vollständige Liste aller Optionen des Tages (inkl. Restaurants ohne
+        // Speisekarte); full.restaurants enthält nur die abstimmbaren.
+        restaurantIds: full.restaurantIds ?? full.restaurants.map((r) => r.id),
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
