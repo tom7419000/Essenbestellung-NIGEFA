@@ -39,8 +39,10 @@ function mapDay(d) {
 
 // Abstimmbare Restaurants (mit Speisekarte). Restaurants ohne Speisekarte
 // (Supermärkte) nehmen nicht an der Abstimmung teil – siehe participationOptionsOf.
+// Enthält je Restaurant die Namen der Abstimmenden (`voters`) – nur für
+// angemeldete Nutzer, die ohnehin Zugriff auf die Tagesabstimmung haben.
 function dayRestaurantsWithVotes(dayId) {
-  return db
+  const rows = db
     .prepare(
       `SELECT r.id, r.name, r.description, r.phone, r.website, COUNT(v.id) AS votes
        FROM day_restaurants dr
@@ -51,6 +53,21 @@ function dayRestaurantsWithVotes(dayId) {
        ORDER BY dr.position ASC, dr.id ASC`
     )
     .all(dayId);
+  const voters = db
+    .prepare(
+      `SELECT v.restaurant_id AS rid, u.display_name AS name
+       FROM restaurant_votes v
+       JOIN users u ON u.id = v.user_id
+       WHERE v.day_id = ?
+       ORDER BY u.display_name COLLATE NOCASE`
+    )
+    .all(dayId);
+  const byRestaurant = new Map();
+  for (const v of voters) {
+    if (!byRestaurant.has(v.rid)) byRestaurant.set(v.rid, []);
+    byRestaurant.get(v.rid).push(v.name);
+  }
+  return rows.map((r) => ({ ...r, voters: byRestaurant.get(r.id) || [] }));
 }
 
 // Teilnahme-Optionen: Restaurants OHNE Speisekarte, die an dem Tag zur Auswahl

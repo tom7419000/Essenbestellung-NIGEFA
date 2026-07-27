@@ -210,6 +210,7 @@ function VotePanel({ data, reload }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [menuFor, setMenuFor] = useState(null);
+  const [showVotersFor, setShowVotersFor] = useState(null);
   const maxVotes = Math.max(0, ...data.restaurants.map((r) => r.votes));
 
   async function vote(restaurantId) {
@@ -258,9 +259,18 @@ function VotePanel({ data, reload }) {
                 </button>
               </div>
               <div className="option-side">
-                <span className="votes-badge">
+                <button
+                  type="button"
+                  className="votes-badge votes-badge-btn"
+                  title={
+                    r.voters.length ? `Abgestimmt: ${r.voters.join(', ')}` : 'Noch keine Stimmen'
+                  }
+                  aria-expanded={showVotersFor === r.id}
+                  disabled={r.votes === 0}
+                  onClick={() => setShowVotersFor(showVotersFor === r.id ? null : r.id)}
+                >
                   {r.votes} {r.votes === 1 ? 'Stimme' : 'Stimmen'}
-                </span>
+                </button>
                 <button
                   className={`btn${mine ? ' btn-selected' : ''}`}
                   disabled={busy}
@@ -270,6 +280,11 @@ function VotePanel({ data, reload }) {
                   {mine ? 'Deine Stimme' : 'Abstimmen'}
                 </button>
               </div>
+              {showVotersFor === r.id && r.voters.length > 0 && (
+                <div className="option-voters">
+                  <b>Abgestimmt:</b> {r.voters.join(', ')}
+                </div>
+              )}
             </div>
           );
         })}

@@ -666,6 +666,16 @@ select.status-select { border-radius: 999px; font-size: 0.85rem; font-weight: 60
 }
 
 .votes-badge.winner { background: var(--accent-soft); color: var(--accent-dark); }
+.votes-badge-btn { border: none; cursor: pointer; font-family: inherit; }
+.votes-badge-btn:not(:disabled):hover { background: var(--gray); color: var(--text); }
+.votes-badge-btn:disabled { cursor: default; }
+.option-voters {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--gray-soft);
+  color: var(--text);
+}
 
 .vote-result { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 

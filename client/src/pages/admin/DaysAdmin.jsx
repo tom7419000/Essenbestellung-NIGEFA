@@ -698,6 +698,7 @@ function DayDetail({ dayId }) {
           <span
             key={r.id}
             className={`votes-badge${detail.day.winningRestaurantId === r.id ? ' winner' : ''}`}
+            title={r.voters?.length ? `Abgestimmt: ${r.voters.join(', ')}` : 'Noch keine Stimmen'}
           >
             {detail.day.winningRestaurantId === r.id && '🏆 '}
             {r.name}: {r.votes}
