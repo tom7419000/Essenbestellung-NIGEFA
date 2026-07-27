@@ -444,6 +444,30 @@ input:focus, select:focus, textarea:focus {
 .order-item-list { margin: 0; padding-left: 1.1rem; }
 .order-item-list li { line-height: 1.35; }
 
+/* Teilnahmeliste (Restaurants ohne Speisekarte) – bewusst andere Optik als
+   die verbindlichen Bestellungen. */
+.participation-card { border: 1px dashed var(--border); }
+.badge-participation { background: var(--blue-soft); color: var(--blue); margin-left: 0.5rem; }
+.participation-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.participation-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2, transparent);
+}
+.participation-option.selected { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.participation-main { flex: 1; min-width: 220px; }
+.participation-main h3 { margin: 0 0 0.2rem; display: flex; align-items: center; flex-wrap: wrap; }
+.participation-people { margin: 0.35rem 0 0; font-size: 0.92rem; }
+.participation-side { display: flex; gap: 0.4rem; }
+.participation-summary { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+.participation-summary:last-child { border-bottom: none; }
+
 .logo-size-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
 .logo-size-preview {
   display: flex;

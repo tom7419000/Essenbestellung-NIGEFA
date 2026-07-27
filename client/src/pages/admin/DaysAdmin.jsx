@@ -768,6 +768,24 @@ function DayDetail({ dayId }) {
           </table>
         </div>
       )}
+
+      {(detail.participationOptions?.length ?? 0) > 0 && (
+        <>
+          <h3>Teilnahme ohne Bestellung</h3>
+          <p className="muted">
+            Unverbindliche Interessenslisten (z. B. Supermarkt) – zählen nicht zur
+            Sammelbestellung.
+          </p>
+          {detail.participationOptions.map((o) => (
+            <div key={o.id} className="participation-summary">
+              <strong>
+                {o.name} · {o.count} {o.count === 1 ? 'Person' : 'Personen'}
+              </strong>
+              {o.count > 0 && <div className="muted">{o.participants.join(', ')}</div>}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }

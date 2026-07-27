@@ -327,6 +327,24 @@ export default function OrganizerPage() {
               ))}
             </div>
           </div>
+
+          {(detail.participationOptions?.length ?? 0) > 0 && (
+            <div className="card">
+              <h3>Teilnahme ohne Bestellung</h3>
+              <p className="muted">
+                Unverbindliche Interessenslisten (z. B. Supermarkt) – zählen nicht zur
+                Sammelbestellung oder zum Bezahlt-Status.
+              </p>
+              {detail.participationOptions.map((o) => (
+                <div key={o.id} className="participation-summary">
+                  <strong>
+                    {o.name} · {o.count} {o.count === 1 ? 'Person' : 'Personen'}
+                  </strong>
+                  {o.count > 0 && <div className="muted">{o.participants.join(', ')}</div>}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

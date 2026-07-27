@@ -37,6 +37,8 @@ function mapDay(d) {
   };
 }
 
+// Abstimmbare Restaurants (mit Speisekarte). Restaurants ohne Speisekarte
+// (Supermärkte) nehmen nicht an der Abstimmung teil – siehe participationOptionsOf.
 function dayRestaurantsWithVotes(dayId) {
   return db
     .prepare(
@@ -44,11 +46,46 @@ function dayRestaurantsWithVotes(dayId) {
        FROM day_restaurants dr
        JOIN restaurants r ON r.id = dr.restaurant_id
        LEFT JOIN restaurant_votes v ON v.day_id = dr.day_id AND v.restaurant_id = r.id
-       WHERE dr.day_id = ?
+       WHERE dr.day_id = ? AND r.has_menu = 1
        GROUP BY r.id
        ORDER BY dr.position ASC, dr.id ASC`
     )
     .all(dayId);
+}
+
+// Teilnahme-Optionen: Restaurants OHNE Speisekarte, die an dem Tag zur Auswahl
+// stehen. Je Option die (unverbindlich) teilnehmenden Personen. Getrennt von
+// den Bestellungen; fließt nicht in Sammelbestellung/Bezahlt-Status ein.
+function participationOptionsOf(dayId, userId = null) {
+  const options = db
+    .prepare(
+      `SELECT r.id, r.name, r.description, r.phone, r.website
+       FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND r.has_menu = 0
+       ORDER BY dr.position ASC, dr.id ASC`
+    )
+    .all(dayId);
+  const partStmt = db.prepare(
+    `SELECT p.user_id AS userId, u.display_name AS userName
+     FROM day_participations p
+     JOIN users u ON u.id = p.user_id
+     WHERE p.day_id = ? AND p.restaurant_id = ?
+     ORDER BY u.display_name COLLATE NOCASE`
+  );
+  return options.map((o) => {
+    const parts = partStmt.all(dayId, o.id);
+    return {
+      id: o.id,
+      name: o.name,
+      description: o.description,
+      phone: o.phone,
+      website: o.website,
+      participants: parts.map((p) => p.userName),
+      count: parts.length,
+      iParticipate: userId != null && parts.some((p) => p.userId === userId),
+    };
+  });
 }
 
 // Speisekarte des Restaurants. Ist ein Wochentag angegeben, werden an diesen
@@ -145,6 +182,7 @@ daysRouter.get('/today', (req, res) => {
     organizerName: organizerNameOf(day),
     isOrganizer: isOrganizerOrAdmin(req.user, day),
     restaurants: dayRestaurantsWithVotes(day.id),
+    participationOptions: participationOptionsOf(day.id, req.user.id),
     myVote:
       db
         .prepare('SELECT restaurant_id FROM restaurant_votes WHERE day_id = ? AND user_id = ?')
@@ -175,10 +213,19 @@ daysRouter.post('/:id/vote', (req, res) => {
   }
   const { restaurantId } = req.body || {};
   const option = db
-    .prepare('SELECT 1 FROM day_restaurants WHERE day_id = ? AND restaurant_id = ?')
+    .prepare(
+      `SELECT r.has_menu FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND dr.restaurant_id = ?`
+    )
     .get(day.id, restaurantId);
   if (!option) {
     return res.status(400).json({ message: 'Dieses Restaurant steht heute nicht zur Wahl.' });
+  }
+  if (!option.has_menu) {
+    return res.status(400).json({
+      message: 'Für diesen Ort wird nicht abgestimmt – bitte über die Teilnahmeliste eintragen.',
+    });
   }
   db.prepare(
     `INSERT INTO restaurant_votes (day_id, user_id, restaurant_id) VALUES (?, ?, ?)
@@ -275,6 +322,56 @@ daysRouter.delete('/:id/order', (req, res) => {
     return res.status(409).json({ message: 'Die Bestellphase ist nicht aktiv.' });
   }
   db.prepare('DELETE FROM orders WHERE day_id = ? AND user_id = ?').run(day.id, req.user.id);
+  res.json({ ok: true });
+});
+
+// ---------- Teilnahme (Restaurants ohne Speisekarte, z. B. Supermärkte) ----------
+// Unverbindliches „Ich gehe mit". Ein-/Austragen bis der Tag vorbei ist
+// (heute/zukünftig) – bewusst großzügiger als der Bestellschluss, da man
+// spontan entscheidet. Getrennt von den Bestellungen.
+
+function participationOption(dayId, restaurantId) {
+  return db
+    .prepare(
+      `SELECT r.has_menu FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND dr.restaurant_id = ?`
+    )
+    .get(dayId, restaurantId);
+}
+
+daysRouter.post('/:id/participation', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.date < todayStr()) {
+    return res.status(409).json({ message: 'Dieser Tag ist bereits vorbei.' });
+  }
+  const { restaurantId } = req.body || {};
+  const opt = participationOption(day.id, restaurantId);
+  if (!opt) {
+    return res.status(400).json({ message: 'Dieser Ort steht heute nicht zur Auswahl.' });
+  }
+  if (opt.has_menu) {
+    return res.status(400).json({ message: 'Für dieses Restaurant bitte regulär bestellen.' });
+  }
+  db.prepare(
+    'INSERT OR IGNORE INTO day_participations (day_id, restaurant_id, user_id) VALUES (?, ?, ?)'
+  ).run(day.id, restaurantId, req.user.id);
+  res.json({ ok: true });
+});
+
+daysRouter.delete('/:id/participation', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.date < todayStr()) {
+    return res.status(409).json({ message: 'Dieser Tag ist bereits vorbei.' });
+  }
+  const { restaurantId } = req.body || {};
+  db.prepare(
+    'DELETE FROM day_participations WHERE day_id = ? AND restaurant_id = ? AND user_id = ?'
+  ).run(day.id, restaurantId, req.user.id);
   res.json({ ok: true });
 });
 
@@ -380,6 +477,8 @@ daysRouter.get('/:id/full', (req, res) => {
     summary,
     totalCents,
     paidStats,
+    // Rein informativ, getrennt von der Sammelbestellung/Bezahlt-Logik.
+    participationOptions: participationOptionsOf(day.id),
   });
 });
 

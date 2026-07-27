@@ -136,6 +136,17 @@ CREATE TABLE IF NOT EXISTS auto_plan_removed (
   date TEXT PRIMARY KEY
 );
 
+-- Unverbindliche Teilnahme („Ich gehe mit") für Restaurants OHNE Speisekarte
+-- (z. B. Supermärkte). Getrennt von orders – keine Bestellung, keine Bezahlung.
+CREATE TABLE IF NOT EXISTS day_participations (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  day_id        INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (day_id, restaurant_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -147,6 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_day_participations_day ON day_participations(day_id);
 `;
 
 function columnExists(table, column) {
@@ -285,6 +297,21 @@ const migrations = [
     name: 'auto_plan_removed (gelöschte Auto-Tage nicht neu anlegen)',
     up() {
       db.exec('CREATE TABLE IF NOT EXISTS auto_plan_removed (date TEXT PRIMARY KEY)');
+    },
+  },
+  {
+    version: 12,
+    name: 'day_participations (Teilnahmeliste für Restaurants ohne Speisekarte)',
+    up() {
+      db.exec(`CREATE TABLE IF NOT EXISTS day_participations (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        day_id        INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+        restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+        user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (day_id, restaurant_id, user_id)
+      )`);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_day_participations_day ON day_participations(day_id)');
     },
   },
 ];

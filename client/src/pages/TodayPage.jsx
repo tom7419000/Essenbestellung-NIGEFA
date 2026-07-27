@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCircleCheck, faHandPointUp, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCartShopping,
+  faCheck,
+  faCircleCheck,
+  faHandPointUp,
+  faTrash,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Countdown from '../components/Countdown.jsx';
@@ -104,16 +111,97 @@ export default function TodayPage() {
         </div>
       </header>
 
-      {day.status === 'phase1' && <VotePanel data={data} reload={load} />}
+      {day.status === 'phase1' && data.restaurants.length > 0 && (
+        <VotePanel data={data} reload={load} />
+      )}
       {day.status !== 'phase1' && <WinnerBanner data={data} />}
       {day.status === 'phase2' &&
-        (data.winner && !data.winner.hasMenu ? (
-          <NoMenuPanel data={data} />
-        ) : (
+        data.winner &&
+        (data.winner.hasMenu ? (
           <OrderPanel data={data} reload={load} />
+        ) : (
+          <NoMenuPanel data={data} />
         ))}
+      {(data.participationOptions?.length ?? 0) > 0 && (
+        <ParticipationPanel data={data} reload={load} />
+      )}
       {day.status === 'closed' && <ClosedPanel data={data} />}
     </div>
+  );
+}
+
+function ParticipationPanel({ data, reload }) {
+  const { day, participationOptions } = data;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const today = new Date().toLocaleDateString('sv-SE');
+  const locked = day.date < today; // vergangene Tage sind gesperrt
+
+  async function toggle(restaurantId, iParticipate) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/days/${day.id}/participation`, {
+        method: iParticipate ? 'DELETE' : 'POST',
+        body: { restaurantId },
+      });
+      await reload();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card participation-card">
+      <h2>
+        <FontAwesomeIcon icon={faCartShopping} /> Ohne Bestellung – wer geht mit?
+      </h2>
+      <p className="muted">
+        Für diese Orte (z. B. Supermarkt) gibt es keine gemeinsame Bestellung. Trage dich
+        unverbindlich ein, wenn du mitgehst – du kannst dich jederzeit wieder austragen.
+      </p>
+      {error && <div className="alert">{error}</div>}
+      <div className="participation-list">
+        {participationOptions.map((o) => (
+          <div key={o.id} className={`participation-option${o.iParticipate ? ' selected' : ''}`}>
+            <div className="participation-main">
+              <h3>
+                {o.name}
+                <span className="badge badge-participation">Teilnahme – keine Bestellung</span>
+              </h3>
+              {o.description && <p className="muted">{o.description}</p>}
+              <p className="participation-people">
+                {o.count === 0 ? (
+                  <span className="muted">Noch niemand eingetragen.</span>
+                ) : (
+                  <>
+                    <b>
+                      {o.count} {o.count === 1 ? 'Person' : 'Personen'}:
+                    </b>{' '}
+                    {o.participants.join(', ')}
+                  </>
+                )}
+              </p>
+            </div>
+            {!locked && (
+              <div className="participation-side">
+                <button
+                  className={`btn${o.iParticipate ? ' btn-selected' : ''}`}
+                  disabled={busy}
+                  title={o.iParticipate ? 'Zum Austragen klicken' : 'Unverbindlich eintragen'}
+                  onClick={() => toggle(o.id, o.iParticipate)}
+                >
+                  <FontAwesomeIcon icon={o.iParticipate ? faCircleCheck : faHandPointUp} />{' '}
+                  {o.iParticipate ? 'Ich bin dabei' : 'Ich gehe mit'}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

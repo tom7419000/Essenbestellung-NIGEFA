@@ -4,14 +4,17 @@ import { notifyOrganizerAssigned, notifyPhaseClosed } from './push.js';
 // Gewinner der Phase 1: meiste Stimmen; bei Gleichstand gewinnt die
 // zuerst gelistete Option des Tages. Ohne Stimmen fällt die Wahl auf
 // die erste Option, damit Phase 2 immer stattfinden kann.
+// Restaurants OHNE Speisekarte (Supermärkte) nehmen NICHT an der Abstimmung
+// teil – sie können nie Gewinner werden (dort läuft nur eine Teilnahmeliste).
 export function tallyWinner(dayId) {
   const rows = db
     .prepare(
       `SELECT dr.restaurant_id AS restaurantId, COUNT(v.id) AS votes
        FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
        LEFT JOIN restaurant_votes v
          ON v.day_id = dr.day_id AND v.restaurant_id = dr.restaurant_id
-       WHERE dr.day_id = ?
+       WHERE dr.day_id = ? AND r.has_menu = 1
        GROUP BY dr.restaurant_id
        ORDER BY votes DESC, dr.position ASC, dr.id ASC`
     )
