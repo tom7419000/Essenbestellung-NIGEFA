@@ -125,9 +125,11 @@ erDiagram
 | Tabelle | Zweck |
 | --- | --- |
 | `users` | Benutzerkonten mit Rolle (`user`/`admin`) und dem additiven Flag `can_plan` (Berechtigung **„Planung"**: Tage anlegen/ändern/absagen und Planungs-Standardzeiten, aber keine Benutzer-/Restaurant-/Design-/SSO-Verwaltung). Nach außen erscheinen so drei Rollen: `user`, `planung`, `admin`. Die Organisator-Rolle ist keine globale Rolle, sondern eine **Zuweisung pro Tag** (`days.organizer_id`). |
-| `restaurants` | Stammdaten der Restaurants/Lieferdienste. Statt harter Löschung werden verwendete Restaurants deaktiviert (`is_active = 0`), damit die Historie erhalten bleibt. |
+| `restaurants` | Stammdaten der Restaurants/Lieferdienste. Statt harter Löschung werden verwendete Restaurants deaktiviert (`is_active = 0`), damit die Historie erhalten bleibt. `has_menu = 0` (z. B. Supermärkte): nehmen **nicht** an der Abstimmung teil und können nicht bestellt werden – stattdessen läuft eine unverbindliche **Teilnahmeliste** (`day_participations`). |
 | `menu_items` | Speisekarte je Restaurant, Preis in Cent (vermeidet Rundungsfehler). `weekdays` (CSV der ISO-Wochentage, leer = jeden Tag) bindet „Tagesessen" an bestimmte Wochentage – nur dann sichtbar/bestellbar; die Prüfung erfolgt serverseitig. |
-| `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. `auto_created = 1` kennzeichnet Tage aus der automatischen Planung; sie bleiben normal (manuell) bearbeitbar. |
+| `days` | Tagesplanung: Datum, Organisator, beide Deadlines, abgeleiteter Status und eingefrorener Gewinner. `auto_created = 1` kennzeichnet Tage aus der automatischen Planung; **jede manuelle Bearbeitung setzt `auto_created = 0`**, wodurch der Tag vor der automatischen Neuerzeugung geschützt ist. |
+| `auto_plan_removed` | Vom Planer gelöschte heutige/künftige Daten, die die Automatik **nicht** erneut anlegen soll (Löschen „hält"). Manuelles Neuanlegen desselben Datums entfernt den Eintrag. |
+| `day_participations` | Unverbindliche Teilnahme („Ich gehe mit") für Restaurants **ohne** Speisekarte. Getrennt von `orders`; fließt nicht in Sammelbestellung/Bezahlt-Status ein. `UNIQUE (day_id, restaurant_id, user_id)`. |
 | `day_restaurants` | Welche Restaurants an einem Tag zur Wahl stehen (`position` = Anzeige-Reihenfolge und Tie-Break bei Stimmengleichheit). |
 | `restaurant_votes` | Phase-1-Stimmen. `UNIQUE (day_id, user_id)` erzwingt eine Stimme pro Person und Tag; erneutes Abstimmen ändert die Stimme (Upsert). |
 | `orders` | Phase-2-Bestellungen (Kopf je Person und Tag). `UNIQUE (day_id, user_id)` erzwingt eine Bestellung pro Person und Tag; änderbar bis Bestellschluss. Status/Bezahlt werden vom Organisator gepflegt. `menu_item_id` hält aus Kompatibilitätsgründen die erste Position; maßgeblich sind die `order_items`. |
@@ -175,6 +177,8 @@ Serverstart sowie explizit im Update-Skript. Bisherige Migrationen:
 | 8 | `menu_items.weekdays` (Tagesessen: Bindung an Wochentage) |
 | 9 | `order_items` (Mehrfachauswahl je Bestellung; Altbestand aus `orders.menu_item_id` übernommen) |
 | 10 | `push_subscriptions` und `notification_log` (Web-Push-Benachrichtigungen für Organisatoren) |
+| 11 | `auto_plan_removed` (gelöschte Auto-Tage werden nicht erneut angelegt) |
+| 12 | `day_participations` (Teilnahmeliste für Restaurants ohne Speisekarte) |
 
 ## Zeitzonen
 

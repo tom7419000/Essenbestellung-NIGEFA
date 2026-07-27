@@ -19,10 +19,12 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
 | GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, Restaurants mit Stimmen, eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
-| POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. |
+| POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. Restaurants **ohne** Speisekarte sind nicht abstimmbar (→ Teilnahmeliste). |
 | DELETE | `/days/:id/vote` | 👤 | Eigene Stimme zurückziehen (nur Phase 1) |
 | POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemIds:[…], note}` (**Mehrfachauswahl**; einzelnes `menuItemId` weiter akzeptiert). Erneuter Aufruf ersetzt die Auswahl; alle Gerichte müssen zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
 | DELETE | `/days/:id/order` | 👤 | Eigene Bestellung löschen (nur Phase 2) |
+| POST | `/days/:id/participation` | 👤 | Unverbindlich zu einem Restaurant **ohne** Speisekarte (Supermarkt) eintragen. Body: `{restaurantId}`. Möglich, solange der Tag nicht vergangen ist. |
+| DELETE | `/days/:id/participation` | 👤 | Aus der Teilnahmeliste austragen. Body: `{restaurantId}`. |
 
 ## Organisator
 
@@ -57,7 +59,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | PUT | `/days/:id` | 🗓️ | Tag ändern (gleicher Body). Status/Gewinner werden aus den neuen Deadlines neu berechnet. |
 | DELETE | `/days/:id` | 🗓️ | Tag inkl. Stimmen und Bestellungen löschen |
 | GET | `/days/auto-plan` | 🗓️ | Konfiguration der automatischen Tagesplanung (Mo–Fr) |
-| PUT | `/days/auto-plan` | 🗓️ | Konfiguration speichern. Body: `{enabled, daysAhead, organizerMode, phase1Time, phase2Time, weekdays:{1..5:{mode:"fest"\|"rotierend", restaurantIds[]}}, holidays[]}` |
+| PUT | `/days/auto-plan` | 🗓️ | Konfiguration speichern **und** betroffene zukünftige Auto-Tage neu erzeugen. Body: `{enabled, daysAhead, organizerMode, phase1Time, phase2Time, weekdays:{1..5:{mode:"fest"\|"rotierend", restaurantIds[]}}, holidays[]}` → `{config, regenerated:{created[], removed[], kept[]}}` (geschützt: manuell bearbeitete/bestellte/heutige/vergangene/gelöschte Tage) |
 | POST | `/days/auto-plan/run` | 🗓️ | Fehlende Tage jetzt erzeugen → `{enabled, created[], skipped[]}` (bestehende Tage bleiben unberührt) |
 | GET | `/users/selectable` | 🗓️ | Aktive Benutzer (nur `id`, `displayName`) für die Organisator-Auswahl der Tagesplanung |
 | GET | `/users` | 🔑 | Benutzerliste |
