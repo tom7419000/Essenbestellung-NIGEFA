@@ -18,7 +18,8 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
-| GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, Restaurants mit Stimmen, eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
+| GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, abstimmbare Restaurants mit Stimmen **und Namen der Abstimmenden** (`voters`), Teilnahme-Optionen (Restaurants ohne Speisekarte), eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
+| GET | `/days/:id/menu/:restaurantId` | 👤 | Speisekarte eines zur Wahl stehenden Restaurants (für die Vorschau in Phase 1). Tagesessen für den Wochentag des Tages gefiltert; ohne Speisekarte leere Liste. |
 | POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. Restaurants **ohne** Speisekarte sind nicht abstimmbar (→ Teilnahmeliste). |
 | DELETE | `/days/:id/vote` | 👤 | Eigene Stimme zurückziehen (nur Phase 1) |
 | POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemIds:[…], note}` (**Mehrfachauswahl**; einzelnes `menuItemId` weiter akzeptiert). Erneuter Aufruf ersetzt die Auswahl; alle Gerichte müssen zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
