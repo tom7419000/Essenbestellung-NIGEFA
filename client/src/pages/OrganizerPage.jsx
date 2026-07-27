@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEuroSign, faPaperPlane, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import ItemLabel from '../components/ItemLabel.jsx';
 import {
   DAY_STATUS,
   ORDER_STATUS,
@@ -198,7 +199,9 @@ export default function OrganizerPage() {
                     {detail.summary.map((s, i) => (
                       <tr key={i}>
                         <td className="num">{s.count}×</td>
-                        <td>{s.itemName}</td>
+                        <td>
+                          <ItemLabel item={s} />
+                        </td>
                         <td className="orderers" title={(s.users || []).join(', ')}>
                           {(s.users || []).join(', ')}
                         </td>
@@ -268,7 +271,9 @@ export default function OrganizerPage() {
                           {o.items && o.items.length > 0 ? (
                             <ul className="order-item-list">
                               {o.items.map((it, i) => (
-                                <li key={i}>{it.itemName || 'Unbekanntes Gericht'}</li>
+                                <li key={i}>
+                                  <ItemLabel item={it} />
+                                </li>
                               ))}
                             </ul>
                           ) : (

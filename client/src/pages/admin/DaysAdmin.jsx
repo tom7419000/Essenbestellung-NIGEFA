@@ -32,6 +32,7 @@ import {
   statusLabel,
   timeInputValue,
 } from '../../format.js';
+import ItemLabel from '../../components/ItemLabel.jsx';
 
 function todayLocal() {
   return new Date().toLocaleDateString('sv-SE');
@@ -722,7 +723,9 @@ function DayDetail({ dayId }) {
                 {detail.summary.map((s, i) => (
                   <tr key={i}>
                     <td className="num">{s.count}×</td>
-                    <td>{s.itemName}</td>
+                    <td>
+                      <ItemLabel item={s} />
+                    </td>
                     <td className="orderers" title={(s.users || []).join(', ')}>
                       {(s.users || []).join(', ')}
                     </td>
@@ -756,9 +759,17 @@ function DayDetail({ dayId }) {
                 <tr key={o.id} className={o.status === 'storniert' ? 'row-cancelled' : ''}>
                   <td>{o.userName}</td>
                   <td>
-                    {o.items && o.items.length > 0
-                      ? o.items.map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')
-                      : 'Unbekanntes Gericht'}
+                    {o.items && o.items.length > 0 ? (
+                      <ul className="order-item-list">
+                        {o.items.map((it, i) => (
+                          <li key={i}>
+                            <ItemLabel item={it} />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      'Unbekanntes Gericht'
+                    )}
                   </td>
                   <td className="num">{fmtPrice(o.totalCents)}</td>
                   <td className="muted">{o.note || '–'}</td>

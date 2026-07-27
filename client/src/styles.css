@@ -444,6 +444,10 @@ input:focus, select:focus, textarea:focus {
 .order-item-list { margin: 0; padding-left: 1.1rem; }
 .order-item-list li { line-height: 1.35; }
 
+/* Kategorie als gedämpftes Präfix vor dem Gerichtsnamen (Sammel-/Einzelbestellungen).
+   Bewusst ohne kleinere Schrift – der Tabellentext ist bereits klein. */
+.item-category { color: var(--muted); font-weight: 400; }
+
 /* Teilnahmeliste (Restaurants ohne Speisekarte) – bewusst andere Optik als
    die verbindlichen Bestellungen. */
 .participation-card { border: 1px dashed var(--border); }

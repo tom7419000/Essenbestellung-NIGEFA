@@ -492,6 +492,9 @@ daysRouter.get('/:id/full', (req, res) => {
       const key = it.menuItemId ?? `deleted-${it.itemName || '?'}`;
       const entry = byItem.get(key) || {
         itemName: it.itemName || 'Unbekanntes Gericht',
+        // Gelöschte Gerichte liefern category = null (ON DELETE SET NULL) –
+        // '' hält den localeCompare unten sicher.
+        category: it.category || '',
         priceCents: it.priceCents,
         count: 0,
         users: [],
@@ -501,9 +504,16 @@ daysRouter.get('/:id/full', (req, res) => {
       byItem.set(key, entry);
     }
   }
+  // Häufigste Gerichte zuerst (so wird die Liste durchtelefoniert); bei
+  // Gleichstand nach Kategorie, dann Name – passend zur Anzeige „Kategorie · Name".
   const summary = [...byItem.values()]
     .map((e) => ({ ...e, totalCents: e.priceCents != null ? e.priceCents * e.count : null }))
-    .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName, 'de'));
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        a.category.localeCompare(b.category, 'de') ||
+        a.itemName.localeCompare(b.itemName, 'de')
+    );
 
   // Bezahlt-Übersicht (stornierte Bestellungen zählen nicht mit); Beträge je
   // Bestellung = Summe ihrer Gerichte.
