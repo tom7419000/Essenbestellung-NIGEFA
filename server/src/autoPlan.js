@@ -240,11 +240,17 @@ export function regenerateAutoPlan({ today = todayStr(), tz = TZ } = {}) {
       del.run(r.id);
       result.removed.push(r.date);
     }
+    // Ein bewusstes Speichern der Einstellungen = „Plan neu aufbauen": die
+    // Sperrliste zuvor gelöschter Tage wird zurückgesetzt, damit der Plan
+    // vollständig gemäß aktueller Konfiguration entsteht. (Ein einzelnes
+    // Löschen bleibt gegenüber der routinemäßigen Erzeugung wirksam, bis wieder
+    // gespeichert wird.)
+    db.prepare('DELETE FROM auto_plan_removed').run();
   });
   replaceTx();
 
   // 2) Gemäß aktueller Konfiguration neu erzeugen (überspringt bestehende/
-  //    geschützte Tage, Wochenenden, Feiertage und gesperrte Daten).
+  //    geschützte Tage, Wochenenden, Feiertage; Sperrliste ist geleert).
   const gen = generateAutoPlan({ today, tz });
   result.created = gen.created;
 
