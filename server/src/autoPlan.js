@@ -157,6 +157,7 @@ export function generateAutoPlan({ today = todayStr(), tz = TZ } = {}) {
 
   const holidays = new Set(cfg.holidays);
   const existing = new Set(db.prepare('SELECT date FROM days').all().map((r) => r.date));
+  const removed = new Set(db.prepare('SELECT date FROM auto_plan_removed').all().map((r) => r.date));
   const activeIds = new Set(
     db.prepare('SELECT id FROM restaurants WHERE is_active = 1').all().map((r) => r.id)
   );
@@ -167,6 +168,11 @@ export function generateAutoPlan({ today = todayStr(), tz = TZ } = {}) {
     if (wd > 5) continue; // Wochenende
     if (holidays.has(date)) {
       result.skipped.push({ date, reason: 'Feiertag' });
+      continue;
+    }
+    // Vom Planer gelöschte Daten nicht wieder anlegen (Problem A).
+    if (removed.has(date)) {
+      result.skipped.push({ date, reason: 'gelöscht' });
       continue;
     }
     if (existing.has(date)) continue; // bereits geplant – unangetastet lassen
@@ -194,5 +200,70 @@ export function generateAutoPlan({ today = todayStr(), tz = TZ } = {}) {
     result.created.push(date);
   }
 
+  return result;
+}
+
+// Ein (künftiges) Datum von der Automatik ausschließen (nach dem Löschen).
+export function suppressAutoDate(date) {
+  db.prepare('INSERT OR IGNORE INTO auto_plan_removed (date) VALUES (?)').run(date);
+}
+
+// Sperre aufheben (z. B. wenn der Tag manuell wieder angelegt wird).
+export function unsuppressAutoDate(date) {
+  db.prepare('DELETE FROM auto_plan_removed WHERE date = ?').run(date);
+}
+
+// Neuerzeugung nach Änderung der Einstellungen (Problem B): sicher ersetzbare
+// Zukunfts-Auto-Tage entfernen und gemäß aktueller Konfiguration neu anlegen.
+// „Sicher ersetzbar" = auto_created = 1, date > heute, keine Bestellungen und
+// keine Stimmen. Geschützte Tage (manuell bearbeitet, mit Bestellungen/Stimmen,
+// heute/vergangen) sowie gesperrte Daten bleiben unangetastet.
+export function regenerateAutoPlan({ today = todayStr(), tz = TZ } = {}) {
+  const cfg = getAutoPlanConfig();
+  const result = { enabled: cfg.enabled, removed: [], created: [], kept: [] };
+  if (!cfg.enabled) return result;
+
+  // 1) Sicher ersetzbare Zukunfts-Auto-Tage bestimmen und löschen.
+  const replaceable = db
+    .prepare(
+      `SELECT d.id, d.date
+         FROM days d
+        WHERE d.auto_created = 1
+          AND d.date > ?
+          AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.day_id = d.id)
+          AND NOT EXISTS (SELECT 1 FROM restaurant_votes v WHERE v.day_id = d.id)`
+    )
+    .all(today);
+  const del = db.prepare('DELETE FROM days WHERE id = ?');
+  const replaceTx = db.transaction(() => {
+    for (const r of replaceable) {
+      del.run(r.id);
+      result.removed.push(r.date);
+    }
+  });
+  replaceTx();
+
+  // 2) Gemäß aktueller Konfiguration neu erzeugen (überspringt bestehende/
+  //    geschützte Tage, Wochenenden, Feiertage und gesperrte Daten).
+  const gen = generateAutoPlan({ today, tz });
+  result.created = gen.created;
+
+  // 3) Geschützte Tage im Zeitraum ermitteln (existieren, aber nicht (neu)
+  //    erzeugt) – für die UI-Rückmeldung „nicht ersetzt".
+  const holidays = new Set(cfg.holidays);
+  const removedSet = new Set(
+    db.prepare('SELECT date FROM auto_plan_removed').all().map((r) => r.date)
+  );
+  const createdSet = new Set(gen.created);
+  const existsStmt = db.prepare('SELECT 1 FROM days WHERE date = ?');
+  for (let offset = 1; offset <= cfg.daysAhead; offset += 1) {
+    const date = addDays(today, offset);
+    const wd = isoWeekday(date);
+    if (wd > 5 || holidays.has(date) || removedSet.has(date)) continue;
+    const wdCfg = cfg.weekdays[wd] || { restaurantIds: [] };
+    if (!wdCfg.restaurantIds || wdCfg.restaurantIds.length === 0) continue;
+    if (createdSet.has(date)) continue; // gerade neu erzeugt
+    if (existsStmt.get(date)) result.kept.push(date); // bestehend & geschützt
+  }
   return result;
 }

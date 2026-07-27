@@ -3,7 +3,14 @@ import { db } from '../db.js';
 import { requireAuth, requireAdmin, requirePlanner } from '../auth.js';
 import { ensureCurrent, resolveOpenDays } from '../dayLogic.js';
 import { todayStr, isoWeekday } from '../util.js';
-import { generateAutoPlan, getAutoPlanConfig, setAutoPlanConfig } from '../autoPlan.js';
+import {
+  generateAutoPlan,
+  getAutoPlanConfig,
+  regenerateAutoPlan,
+  setAutoPlanConfig,
+  suppressAutoDate,
+  unsuppressAutoDate,
+} from '../autoPlan.js';
 import { parseWeekdayCsv, weekdaysAllow } from '../weekdayParse.js';
 import { notifyOrganizerAssigned } from '../push.js';
 
@@ -449,7 +456,10 @@ daysRouter.get('/auto-plan', requirePlanner, (req, res) => {
 daysRouter.put('/auto-plan', requirePlanner, (req, res) => {
   const { config, error } = setAutoPlanConfig(req.body);
   if (error) return res.status(400).json({ message: error });
-  res.json({ config });
+  // Speichern erzeugt die betroffenen (sicher ersetzbaren) Zukunfts-Auto-Tage
+  // neu; geschützte Tage (manuell/Bestellungen) bleiben erhalten.
+  const regenerated = regenerateAutoPlan();
+  res.json({ config, regenerated });
 });
 
 daysRouter.post('/auto-plan/run', requirePlanner, (req, res) => {
@@ -529,6 +539,8 @@ daysRouter.post('/', requirePlanner, (req, res) => {
   const v = validateDayInput(req.body);
   if (v.error) return res.status(400).json({ message: v.error });
   const dayId = insertDayTx(v);
+  // Manuell (wieder) angelegtes Datum ist nicht mehr von der Automatik gesperrt.
+  unsuppressAutoDate(v.date);
   const day = ensureCurrent(getDay(dayId));
   if (day.organizer_id) notifyOrganizerAssigned(day, day.organizer_id);
   res.status(201).json({ day: mapDay(day) });
@@ -549,9 +561,12 @@ const updateDayTx = db.transaction((day, v) => {
   }
 
   // Status und Gewinner werden anschließend aus den (neuen) Deadlines abgeleitet.
+  // auto_created = 0: eine manuelle Bearbeitung „schützt" den Tag vor der
+  // automatischen Neuerzeugung (er gilt fortan als manuell gepflegt).
   db.prepare(
     `UPDATE days SET date = ?, organizer_id = ?, organizer_mode = ?, organizer_source = ?,
-       phase1_deadline = ?, phase2_deadline = ?, status = 'phase1', winning_restaurant_id = NULL
+       phase1_deadline = ?, phase2_deadline = ?, status = 'phase1', winning_restaurant_id = NULL,
+       auto_created = 0
      WHERE id = ?`
   ).run(v.date, organizerId, v.organizerMode, organizerSource, v.p1Iso, v.p2Iso, day.id);
   const dayId = day.id;
@@ -581,6 +596,9 @@ daysRouter.put('/:id', requirePlanner, (req, res) => {
 daysRouter.delete('/:id', requirePlanner, (req, res) => {
   const day = getDay(req.params.id);
   if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  // Löschen eines heutigen/künftigen Tages sperrt das Datum, damit die
+  // Automatik es nicht erneut anlegt (Problem A: Löschen „hält" jetzt).
+  if (day.date >= todayStr()) suppressAutoDate(day.date);
   // Stimmen und Bestellungen des Tages werden mitgelöscht (ON DELETE CASCADE).
   db.prepare('DELETE FROM days WHERE id = ?').run(day.id);
   res.json({ ok: true });

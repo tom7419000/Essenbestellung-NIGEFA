@@ -130,6 +130,12 @@ CREATE TABLE IF NOT EXISTS notification_log (
   UNIQUE (day_id, kind, user_id)
 );
 
+-- Vom Planer gelöschte (Werktags-)Daten, die die Automatik NICHT erneut anlegen
+-- soll. Wird beim manuellen Neuanlegen desselben Datums wieder entfernt.
+CREATE TABLE IF NOT EXISTS auto_plan_removed (
+  date TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -272,6 +278,13 @@ const migrations = [
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE (day_id, kind, user_id)
       )`);
+    },
+  },
+  {
+    version: 11,
+    name: 'auto_plan_removed (gelöschte Auto-Tage nicht neu anlegen)',
+    up() {
+      db.exec('CREATE TABLE IF NOT EXISTS auto_plan_removed (date TEXT PRIMARY KEY)');
     },
   },
 ];

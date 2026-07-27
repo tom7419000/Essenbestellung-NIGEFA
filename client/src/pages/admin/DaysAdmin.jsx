@@ -471,15 +471,18 @@ function AutoPlanCard({ restaurants, onGenerated }) {
     });
   }
 
-  async function persist() {
-    const holidays = holidaysText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const d = await api('/days/auto-plan', { method: 'PUT', body: { ...config, holidays } });
-    setConfig(d.config);
-    setHolidaysText((d.config.holidays || []).join('\n'));
-    return d.config;
+  function regenSummary(r) {
+    if (!r) return 'Konfiguration gespeichert.';
+    if (!r.enabled) {
+      return 'Gespeichert. Die Automatik ist deaktiviert – es wurden keine Tage erzeugt.';
+    }
+    const parts = [`${r.created.length} Tag(e) erzeugt`];
+    if (r.removed?.length) parts.push(`${r.removed.length} ersetzt`);
+    let text = `Gespeichert. ${parts.join(', ')}.`;
+    if (r.kept?.length) {
+      text += ` Nicht ersetzt (Bestellungen/manuell angepasst): ${r.kept.join(', ')}.`;
+    }
+    return text;
   }
 
   async function save(e) {
@@ -488,8 +491,15 @@ function AutoPlanCard({ restaurants, onGenerated }) {
     setMsg('');
     setBusy(true);
     try {
-      await persist();
-      setMsg('Konfiguration gespeichert.');
+      const holidays = holidaysText
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const d = await api('/days/auto-plan', { method: 'PUT', body: { ...config, holidays } });
+      setConfig(d.config);
+      setHolidaysText((d.config.holidays || []).join('\n'));
+      setMsg(regenSummary(d.regenerated));
+      await onGenerated?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -497,19 +507,20 @@ function AutoPlanCard({ restaurants, onGenerated }) {
     }
   }
 
-  async function saveAndRun() {
+  // Nur fehlende Tage anlegen (ohne Konfigurationsänderung/Ersetzen) – nützlich,
+  // um ohne Speichern weiter vorauszuplanen.
+  async function fillNow() {
     setError('');
     setMsg('');
     setBusy(true);
     try {
-      await persist();
       const r = await api('/days/auto-plan/run', { method: 'POST' });
       if (!r.enabled) {
-        setMsg('Gespeichert. Die Automatik ist deaktiviert – es wurden keine Tage erzeugt.');
+        setMsg('Die Automatik ist deaktiviert – es wurden keine Tage erzeugt.');
       } else if (r.created.length === 0) {
-        setMsg('Gespeichert. Keine neuen Tage nötig – alle geplanten Tage existieren bereits.');
+        setMsg('Keine neuen Tage nötig – alle geplanten Tage existieren bereits.');
       } else {
-        setMsg(`Gespeichert. ${r.created.length} Tag(e) erzeugt: ${r.created.join(', ')}.`);
+        setMsg(`${r.created.length} fehlende(r) Tag(e) erzeugt: ${r.created.join(', ')}.`);
       }
       await onGenerated?.();
     } catch (err) {
@@ -531,8 +542,9 @@ function AutoPlanCard({ restaurants, onGenerated }) {
       </h2>
       <p className="muted">
         Legt werktags (Mo–Fr) automatisch Tage im Voraus an. Wochenenden werden ausgelassen,
-        Feiertage/Ausnahmen pflegst du unten als Datumsliste. Bereits geplante Tage bleiben
-        unangetastet und lassen sich weiterhin manuell bearbeiten.
+        Feiertage/Ausnahmen pflegst du unten als Datumsliste. Beim Speichern werden die
+        betroffenen <strong>zukünftigen</strong> Auto-Tage neu erzeugt – Tage mit Bestellungen
+        oder manuellen Änderungen sowie gelöschte Tage bleiben dabei unangetastet.
       </p>
       {error && <div className="alert">{error}</div>}
       {msg && <div className="notice">{msg}</div>}
@@ -651,10 +663,10 @@ function AutoPlanCard({ restaurants, onGenerated }) {
 
         <div className="row">
           <button className="btn btn-primary" disabled={busy}>
-            <FontAwesomeIcon icon={faFloppyDisk} /> Speichern
+            <FontAwesomeIcon icon={faFloppyDisk} /> Speichern &amp; Auto-Tage aktualisieren
           </button>
-          <button type="button" className="btn" disabled={busy} onClick={saveAndRun}>
-            <FontAwesomeIcon icon={faBolt} /> Speichern &amp; jetzt erzeugen
+          <button type="button" className="btn" disabled={busy} onClick={fillNow}>
+            <FontAwesomeIcon icon={faBolt} /> Nur fehlende Tage erzeugen
           </button>
         </div>
       </form>
