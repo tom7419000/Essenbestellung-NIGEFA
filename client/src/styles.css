@@ -433,7 +433,14 @@ input:focus, select:focus, textarea:focus {
 .weekday-hint { font-size: 0.8rem; }
 .add-item-weekdays { display: flex; flex-direction: column; gap: 0.25rem; }
 .add-item-weekdays > span { font-size: 0.8rem; }
-.menu-item-weekdays { margin-left: 0.4rem; font-size: 0.72rem; vertical-align: middle; }
+/* align-self: sonst zieht sich das Badge in der Flex-Spalte .menu-item-name
+   über die volle Breite. */
+.menu-item-weekdays {
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  vertical-align: middle;
+  align-self: flex-start;
+}
 .order-total-line {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
@@ -713,6 +720,37 @@ select.status-select { border-radius: 999px; font-size: 0.85rem; font-weight: 60
 .menu-list { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .menu-group { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Kategorien im Speisekarten-Modal als Akkordeon (natives <details>:
+   Tastaturbedienung und Screenreader-Ansage kommen vom Browser). */
+.menu-accordion { border: 1px solid var(--border); border-radius: var(--radius); }
+.menu-accordion + .menu-accordion { margin-top: 0.4rem; }
+.menu-accordion > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-radius: var(--radius);
+}
+.menu-accordion > summary::-webkit-details-marker { display: none; }
+.menu-accordion > summary:hover { background: var(--gray-soft); }
+.menu-accordion > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.menu-accordion-chevron { transition: transform 0.15s ease; font-size: 0.75rem; }
+.menu-accordion[open] > summary .menu-accordion-chevron { transform: rotate(90deg); }
+.menu-accordion-count {
+  margin-left: auto;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.menu-accordion-body { padding: 0 0.75rem 0.7rem; }
 
 .menu-category {
   margin: 0.6rem 0 0;

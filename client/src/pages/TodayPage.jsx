@@ -5,6 +5,7 @@ import {
   faBookOpen,
   faCartShopping,
   faCheck,
+  faChevronRight,
   faCircleCheck,
   faHandPointUp,
   faTrash,
@@ -345,36 +346,77 @@ function MenuModal({ dayId, restaurant, onClose }) {
             ) : data.menu.length === 0 ? (
               <p className="muted">Für dieses Restaurant sind keine Gerichte hinterlegt.</p>
             ) : (
-              <div className="menu-list">
-                {groupByCategory(data.menu).map(([category, items]) => (
-                  <div key={category || 'ohne-kategorie'} className="menu-group">
-                    {category && <h3 className="menu-category">{category}</h3>}
-                    {items.map((item) => (
-                      <div key={item.id} className="menu-readonly-item">
-                        <span className="menu-item-name">
-                          {item.name}
-                          {item.weekdays && item.weekdays.length > 0 && (
-                            <span className="badge badge-plan menu-item-weekdays">
-                              Tagesessen · {formatWeekdays(item.weekdays)}
-                            </span>
-                          )}
-                          {(item.description || item.allergens) && (
-                            <small className="muted">
-                              {item.description}
-                              {item.description && item.allergens && ' · '}
-                              {item.allergens && <>Allergene: {item.allergens}</>}
-                            </small>
-                          )}
-                        </span>
-                        <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+              <MenuAccordion menu={data.menu} />
             ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Speisekarte im Modal: je Kategorie ein natives <details>. Dadurch ist das
+// Auf-/Zuklappen ohne eigenes JavaScript per Tastatur bedienbar und wird von
+// Screenreadern als aufklappbarer Bereich angesagt – eigene ARIA-Attribute
+// wären hier redundant. Offen ist anfangs die Tagesessen-Gruppe (Gerichte mit
+// Wochentags-Bindung), sonst die erste Kategorie. Gerichte ohne Kategorie
+// stehen ungefaltet oben, weil es für sie keine Überschrift zum Klicken gibt.
+function MenuAccordion({ menu }) {
+  const groups = groupByCategory(menu);
+  const withoutCategory = groups.find(([category]) => !category)?.[1] || [];
+  const categories = groups.filter(([category]) => category);
+  const tagesessenIndex = categories.findIndex(([, items]) =>
+    items.some((item) => item.weekdays && item.weekdays.length > 0)
+  );
+  const openIndex = tagesessenIndex >= 0 ? tagesessenIndex : 0;
+
+  return (
+    <div className="menu-list">
+      {withoutCategory.length > 0 && (
+        <div className="menu-group">
+          {withoutCategory.map((item) => (
+            <MenuReadonlyItem key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+      {categories.map(([category, items], index) => (
+        <details key={category} className="menu-accordion" open={index === openIndex}>
+          <summary>
+            <FontAwesomeIcon icon={faChevronRight} className="menu-accordion-chevron" />
+            <span>{category}</span>
+            <span className="menu-accordion-count">
+              {items.length} {items.length === 1 ? 'Gericht' : 'Gerichte'}
+            </span>
+          </summary>
+          <div className="menu-group menu-accordion-body">
+            {items.map((item) => (
+              <MenuReadonlyItem key={item.id} item={item} />
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function MenuReadonlyItem({ item }) {
+  return (
+    <div className="menu-readonly-item">
+      <span className="menu-item-name">
+        {item.name}
+        {item.weekdays && item.weekdays.length > 0 && (
+          <span className="badge badge-plan menu-item-weekdays">
+            Tagesessen · {formatWeekdays(item.weekdays)}
+          </span>
+        )}
+        {(item.description || item.allergens) && (
+          <small className="muted">
+            {item.description}
+            {item.description && item.allergens && ' · '}
+            {item.allergens && <>Allergene: {item.allergens}</>}
+          </small>
+        )}
+      </span>
+      <span className="menu-item-price">{fmtPrice(item.priceCents)}</span>
     </div>
   );
 }
