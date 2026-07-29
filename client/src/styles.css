@@ -683,6 +683,20 @@ select.status-select { border-radius: 999px; font-size: 0.85rem; font-weight: 60
 
 .vote-result { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
+/* Abstimmende unter dem Ergebnis (Organisation) – dauerhaft sichtbar, Optik
+   wie die aufklappbare Liste in Phase 1 (.option-voters). */
+.vote-voters { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.7rem; }
+.vote-voters-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--gray-soft);
+  color: var(--text);
+}
+
 /* ---------- Gewinner & Menü (Phase 2) ---------- */
 
 .winner-banner {

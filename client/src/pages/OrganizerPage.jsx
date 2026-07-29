@@ -325,13 +325,25 @@ export default function OrganizerPage() {
                 <span
                   key={r.id}
                   className={`votes-badge${detail.day.winningRestaurantId === r.id ? ' winner' : ''}`}
-                  title={
-                    r.voters?.length ? `Abgestimmt: ${r.voters.join(', ')}` : 'Noch keine Stimmen'
-                  }
                 >
                   {detail.day.winningRestaurantId === r.id && '🏆 '}
                   {r.name}: {r.votes}
                 </span>
+              ))}
+            </div>
+            {/* Abstimmende dauerhaft sichtbar – in der abschließenden Übersicht
+                soll nichts erst aufgeklappt werden müssen. */}
+            <div className="vote-voters">
+              {detail.restaurants.map((r) => (
+                <div key={r.id} className="vote-voters-group">
+                  <strong>
+                    {detail.day.winningRestaurantId === r.id && '🏆 '}
+                    {r.name}
+                  </strong>
+                  <span className={r.voters?.length ? '' : 'muted'}>
+                    {r.voters?.length ? r.voters.join(', ') : 'keine Stimmen'}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
