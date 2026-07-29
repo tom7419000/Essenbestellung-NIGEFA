@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import ItemLabel from '../components/ItemLabel.jsx';
 import { fmtDateShort, fmtPrice, statusLabel } from '../format.js';
 
 export default function MyOrdersPage() {
@@ -41,9 +42,17 @@ export default function MyOrdersPage() {
                     <td>{fmtDateShort(o.date)}</td>
                     <td>{o.restaurantName || '–'}</td>
                     <td>
-                      {o.items && o.items.length > 0
-                        ? o.items.map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')
-                        : 'Unbekanntes Gericht'}
+                      {o.items && o.items.length > 0 ? (
+                        <ul className="order-item-list">
+                          {o.items.map((it, i) => (
+                            <li key={i}>
+                              <ItemLabel item={it} />
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        'Unbekanntes Gericht'
+                      )}
                     </td>
                     <td className="muted">{o.note || '–'}</td>
                     <td className="num">{fmtPrice(o.totalCents)}</td>

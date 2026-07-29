@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -13,6 +13,7 @@ import {
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Countdown from '../components/Countdown.jsx';
+import ItemLabel from '../components/ItemLabel.jsx';
 import {
   DAY_STATUS,
   ORGANIZER_SOURCE_LABELS,
@@ -465,7 +466,9 @@ function OrderPanel({ data, reload }) {
       {myOrder ? (
         <div className="notice success">
           Deine Bestellung ist gespeichert:{' '}
-          <b>{(myOrder.items || []).map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')}</b>
+          <b>
+            <OrderItemsInline items={myOrder.items} />
+          </b>
           {myOrder.totalCents > 0 && <> · {fmtPrice(myOrder.totalCents)}</>}
           {myOrder.note && <> („{myOrder.note}“)</>}. Du kannst sie bis zum Bestellschluss ändern.
         </div>
@@ -588,6 +591,19 @@ function VolunteerControls({ data, user, reload }) {
   );
 }
 
+// Bestellte Gerichte im Fließtext („Deine Bestellung: …"), je Gericht mit
+// vorangestellter Kategorie und durch Komma getrennt.
+function OrderItemsInline({ items }) {
+  const list = items || [];
+  if (list.length === 0) return <>Unbekanntes Gericht</>;
+  return list.map((it, i) => (
+    <Fragment key={i}>
+      {i > 0 && ', '}
+      <ItemLabel item={it} />
+    </Fragment>
+  ));
+}
+
 // Speisekarte nach Kategorie gruppieren (Server liefert bereits sortiert);
 // Gerichte ohne Kategorie erscheinen zuerst, ohne Zwischenüberschrift.
 function groupByCategory(menu) {
@@ -639,7 +655,9 @@ function ClosedPanel({ data }) {
       {data.myOrder ? (
         <p>
           Deine Bestellung:{' '}
-          <b>{(data.myOrder.items || []).map((i) => i.itemName || 'Unbekanntes Gericht').join(', ')}</b>{' '}
+          <b>
+            <OrderItemsInline items={data.myOrder.items} />
+          </b>{' '}
           ({fmtPrice(data.myOrder.totalCents)})
           {data.myOrder.note && <> – Bemerkung: „{data.myOrder.note}“</>} · Status:{' '}
           <span className={`badge order-${data.myOrder.status}`}>{statusLabel(data.myOrder.status)}</span>

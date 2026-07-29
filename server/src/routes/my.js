@@ -21,7 +21,7 @@ router.get('/orders', (req, res) => {
     )
     .all(req.user.id);
   const itemsStmt = db.prepare(
-    `SELECT mi.name AS itemName, mi.price_cents AS priceCents
+    `SELECT mi.name AS itemName, mi.price_cents AS priceCents, mi.category AS category
      FROM order_items oi
      LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
      WHERE oi.order_id = ?
