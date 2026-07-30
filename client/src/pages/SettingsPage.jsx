@@ -9,6 +9,7 @@ import {
   pushSupported,
   sendTestPush,
 } from '../push.js';
+import WrappedDeck from '../components/WrappedDeck.jsx';
 
 export default function SettingsPage() {
   const supported = pushSupported();
@@ -144,6 +145,8 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      <WrappedDeck />
     </div>
   );
 }

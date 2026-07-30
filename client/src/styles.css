@@ -1026,6 +1026,7 @@ td.orderers {
 }
 .blocked-card h1 { margin: 0; }
 .blocked-emoji { font-size: 2.6rem; }
+.blocked-hint { margin: 0; font-size: 0.85rem; }
 .blocked-video { position: relative; width: 100%; aspect-ratio: 16 / 9; }
 .blocked-video iframe {
   position: absolute;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChartSimple, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { fmtDateLong, fmtPrice } from '../format.js';
@@ -95,7 +95,9 @@ function buildSlides(data, displayName) {
   return slides;
 }
 
-export default function WrappedPage() {
+// Als Abschnitt gedacht (steht in den Einstellungen), deshalb eigene Karte
+// mit Überschrift statt einer eigenen Seite.
+export default function WrappedDeck() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [period, setPeriod] = useState('');
@@ -136,16 +138,11 @@ export default function WrappedPage() {
   const slide = slides[Math.min(index, slides.length - 1)];
 
   return (
-    <div className="stack">
-      <div className="card page-head">
-        <div>
-          <span className="eyebrow">Rückblick</span>
-          <h1>Euer Essensjahr</h1>
-          <p className="muted">
-            Ausgewertet wird die vorhandene Bestellhistorie – stornierte Bestellungen zählen nicht
-            mit.
-          </p>
-        </div>
+    <div className="card">
+      <div className="row space-between wrap">
+        <h2>
+          <FontAwesomeIcon icon={faChartSimple} /> Rückblick
+        </h2>
         <label className="inline-select">
           Zeitraum
           <select value={period} onChange={(e) => load(e.target.value)}>
@@ -157,6 +154,10 @@ export default function WrappedPage() {
           </select>
         </label>
       </div>
+      <p className="muted">
+        Euer Essensjahr in Zahlen – ausgewertet wird die vorhandene Bestellhistorie, stornierte
+        Bestellungen zählen nicht mit.
+      </p>
 
       <div className="wrapped-deck">
         <div className={`wrapped-slide tint-${slide.tint}`} role="group" aria-label={slide.eyebrow}>
