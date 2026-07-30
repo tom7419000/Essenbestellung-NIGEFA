@@ -53,7 +53,15 @@ export function sanitizeUser(u) {
     role: effectiveRole(u),
     canPlan: !!u.can_plan,
     isActive: !!u.is_active,
+    isBlocked: !!u.is_blocked,
   };
+}
+
+// Einheitliche Antwort für gesperrte Konten. `blocked: true` erlaubt dem
+// Client, die Hinweisseite zu zeigen, statt nur eine Fehlermeldung.
+export const BLOCKED_STATUS = 403;
+export function blockedResponse(res) {
+  return res.status(BLOCKED_STATUS).json({ message: 'Du bist gesperrt.', blocked: true });
 }
 
 export function requireAuth(req, res, next) {
@@ -70,6 +78,11 @@ export function requireAuth(req, res, next) {
   if (!user || !user.is_active) {
     return res.status(401).json({ message: 'Konto nicht gefunden oder deaktiviert.' });
   }
+  // Sperre vor der Token-Prüfung: beim Sperren wird die Token-Version
+  // hochgezählt, sonst käme hier nur „Sitzung abgelaufen" statt des Hinweises.
+  // Die Prüfung läuft bei jedem Request gegen die Datenbank – eine Sperre
+  // wirkt damit sofort, auch für bereits ausgestellte Tokens.
+  if (user.is_blocked) return blockedResponse(res);
   // Token-Version muss zum aktuellen Stand passen (M2): nach Logout,
   // Passwortänderung oder Deaktivierung sind alte Tokens ungültig.
   if ((payload.tv ?? 0) !== (user.token_version ?? 0)) {

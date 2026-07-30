@@ -611,6 +611,7 @@ input:focus, select:focus, textarea:focus {
 .badge-auto { background: var(--blue-soft); color: var(--blue); margin-left: 0.4rem; gap: 0.3rem; }
 .badge-ok { background: var(--green-soft); color: var(--green); }
 .badge-off { background: var(--gray-soft); color: var(--muted); }
+.badge-blocked { background: var(--red-soft); color: var(--red); }
 
 .status-phase1 { background: var(--blue-soft); color: var(--blue); }
 .status-phase2 { background: var(--amber-soft); color: var(--amber); }
@@ -925,6 +926,28 @@ td.orderers {
 }
 .login-logo { max-height: 64px; max-width: 220px; object-fit: contain; align-self: center; }
 .login-card h1 { margin: 0; }
+
+/* Sperrseite: gleiche Bühne wie der Login, nur breiter für das Video. */
+.blocked-card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 2rem;
+  text-align: center;
+}
+.blocked-card h1 { margin: 0; }
+.blocked-emoji { font-size: 2.6rem; }
+.blocked-video { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+.blocked-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--radius);
+}
 
 /* ---------- Admin: Design & Branding ---------- */
 

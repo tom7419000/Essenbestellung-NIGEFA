@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
 import { BrandingProvider } from './branding/BrandingContext.jsx';
 import Layout from './components/Layout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import BlockedPage from './pages/BlockedPage.jsx';
 import TodayPage from './pages/TodayPage.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
 import OrganizerPage from './pages/OrganizerPage.jsx';
@@ -31,6 +32,7 @@ export default function App() {
         <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/gesperrt" element={<BlockedPage />} />
           <Route
             element={
               <Protected>

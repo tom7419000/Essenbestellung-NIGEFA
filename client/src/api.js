@@ -24,13 +24,20 @@ export async function api(path, { method = 'GET', body } = {}) {
   }
 
   if (!res.ok) {
-    // Abgelaufene Sitzung: Token verwerfen und zur Anmeldung schicken.
-    if (res.status === 401 && token && !path.startsWith('/auth/login')) {
+    // Gesperrtes Konto: Token verwerfen und zur Hinweisseite. Gilt für den
+    // Anmeldeversuch wie für eine Sperre mitten in der laufenden Sitzung –
+    // der Server markiert beide Fälle mit `blocked`.
+    if (data?.blocked) {
+      clearToken();
+      if (window.location.pathname !== '/gesperrt') window.location.href = '/gesperrt';
+    } else if (res.status === 401 && token && !path.startsWith('/auth/login')) {
+      // Abgelaufene Sitzung: Token verwerfen und zur Anmeldung schicken.
       clearToken();
       window.location.href = '/login';
     }
     const err = new Error(data?.message || `Fehler ${res.status}`);
     err.status = res.status;
+    err.blocked = Boolean(data?.blocked);
     throw err;
   }
   return data;

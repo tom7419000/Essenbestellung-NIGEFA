@@ -3,7 +3,14 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
-import { bumpTokenVersion, passwordError, requireAuth, sanitizeUser, signToken } from '../auth.js';
+import {
+  blockedResponse,
+  bumpTokenVersion,
+  passwordError,
+  requireAuth,
+  sanitizeUser,
+  signToken,
+} from '../auth.js';
 import { getSsoConfig } from '../sso.js';
 import { rateLimit } from '../rateLimit.js';
 import { auditLog } from '../audit.js';
@@ -35,6 +42,12 @@ router.post('/login', loginLimiter, (req, res) => {
     // den Grund weiterhin.
     auditLog('login_denied_inactive', req, { userId: user.id, username: user.username });
     return res.status(401).json({ message: 'Ungültige Zugangsdaten.' });
+  }
+  // Sperre erst nach erfolgreicher Passwortprüfung melden – so erfährt nur,
+  // wer die Zugangsdaten ohnehin kennt, dass das Konto gesperrt ist.
+  if (user.is_blocked) {
+    auditLog('login_denied_blocked', req, { userId: user.id, username: user.username });
+    return blockedResponse(res);
   }
   auditLog('login_success', req, { userId: user.id, username: user.username });
   res.json({ token: signToken(user), user: sanitizeUser(user) });
@@ -130,6 +143,12 @@ router.post('/sso', ssoLimiter, async (req, res) => {
     }
     if (!user.is_active) {
       return res.status(403).json({ message: 'Dieses Konto ist deaktiviert.' });
+    }
+    // Auch bei erfolgreicher Entra-ID-Anmeldung entscheidet die Sperre im
+    // Portal – SSO darf sie nicht umgehen.
+    if (user.is_blocked) {
+      auditLog('sso_denied_blocked', req, { userId: user.id, username: user.username });
+      return blockedResponse(res);
     }
     auditLog('sso_login', req, { userId: user.id, username: user.username });
     res.json({ token: signToken(user), user: sanitizeUser(user) });

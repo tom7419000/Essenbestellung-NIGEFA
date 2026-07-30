@@ -26,7 +26,9 @@ function roleToColumns(role) {
 router.get('/selectable', requireAuth, requirePlanner, (req, res) => {
   const users = db
     .prepare(
-      "SELECT id, display_name FROM users WHERE is_active = 1 ORDER BY display_name COLLATE NOCASE"
+      `SELECT id, display_name FROM users
+       WHERE is_active = 1 AND is_blocked = 0
+       ORDER BY display_name COLLATE NOCASE`
     )
     .all();
   res.json({ users: users.map((u) => ({ id: u.id, displayName: u.display_name })) });
@@ -122,6 +124,25 @@ router.put('/:id', (req, res) => {
     roleChanged: newRole !== user.role || newCanPlan !== (user.can_plan ? 1 : 0),
     activeChanged: newActive !== user.is_active,
     passwordReset: Boolean(password),
+  });
+  res.json({ user: sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)) });
+});
+
+// Konto sperren/entsperren. Beim Sperren wird zusätzlich die Token-Version
+// hochgezählt: bereits ausgestellte Tokens sind damit endgültig unbrauchbar
+// und werden auch durch ein späteres Entsperren nicht wieder gültig.
+router.patch('/:id/blocked', (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ message: 'Benutzer nicht gefunden.' });
+  if (user.id === req.user.id) {
+    return res.status(400).json({ message: 'Du kannst dich nicht selbst sperren.' });
+  }
+  const blocked = req.body?.blocked ? 1 : 0;
+  db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(blocked, user.id);
+  if (blocked) bumpTokenVersion(user.id);
+  auditLog(blocked ? 'user_blocked' : 'user_unblocked', req, {
+    targetId: user.id,
+    targetUsername: user.username,
   });
   res.json({ user: sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)) });
 });

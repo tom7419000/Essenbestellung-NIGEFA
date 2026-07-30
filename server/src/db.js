@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
   role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   can_plan      INTEGER NOT NULL DEFAULT 0,
   is_active     INTEGER NOT NULL DEFAULT 1,
+  is_blocked    INTEGER NOT NULL DEFAULT 0,
   token_version INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -312,6 +313,18 @@ const migrations = [
         UNIQUE (day_id, restaurant_id, user_id)
       )`);
       db.exec('CREATE INDEX IF NOT EXISTS idx_day_participations_day ON day_participations(day_id)');
+    },
+  },
+  {
+    version: 13,
+    name: 'users.is_blocked (Nutzersperre)',
+    up() {
+      // Bewusst getrennt von is_active: „deaktiviert" ist ein stilles
+      // Ruhestellen des Kontos (Anmeldung scheitert mit neutraler Meldung),
+      // „gesperrt" ist eine sichtbare Sperre mit eigener Hinweisseite.
+      if (!columnExists('users', 'is_blocked')) {
+        db.exec('ALTER TABLE users ADD COLUMN is_blocked INTEGER NOT NULL DEFAULT 0');
+      }
     },
   },
 ];

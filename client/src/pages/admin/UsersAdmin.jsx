@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faPen, faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faLockOpen, faPen, faPlus, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
@@ -50,6 +50,22 @@ export default function UsersAdmin() {
       if (!body.password) delete body.password;
       await api(`/users/${id}`, { method: 'PUT', body });
       setEditingId(null);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Sperren macht laufende Sitzungen sofort ungültig – deshalb der Hinweis
+  // in der Rückfrage.
+  async function toggleBlocked(u) {
+    const question = u.isBlocked
+      ? `Sperre für „${u.displayName}“ aufheben?`
+      : `„${u.displayName}“ sperren? Anmeldung (auch per SSO) und laufende Sitzungen werden sofort gesperrt.`;
+    if (!window.confirm(question)) return;
+    setError('');
+    try {
+      await api(`/users/${u.id}/blocked`, { method: 'PATCH', body: { blocked: !u.isBlocked } });
       await load();
     } catch (err) {
       setError(err.message);
@@ -159,7 +175,9 @@ export default function UsersAdmin() {
                       )}
                     </td>
                     <td>
-                      {u.isActive ? (
+                      {u.isBlocked ? (
+                        <span className="badge badge-blocked">gesperrt</span>
+                      ) : u.isActive ? (
                         <span className="badge badge-ok">aktiv</span>
                       ) : (
                         <span className="badge badge-off">deaktiviert</span>
@@ -170,6 +188,15 @@ export default function UsersAdmin() {
                       <button className="btn btn-sm" onClick={() => startEdit(u)}>
                         <FontAwesomeIcon icon={faPen} /> Bearbeiten
                       </button>
+                      {u.id !== me.id && (
+                        <button
+                          className={`btn btn-sm${u.isBlocked ? '' : ' btn-danger-ghost'}`}
+                          onClick={() => toggleBlocked(u)}
+                        >
+                          <FontAwesomeIcon icon={u.isBlocked ? faLockOpen : faBan} />{' '}
+                          {u.isBlocked ? 'Entsperren' : 'Sperren'}
+                        </button>
+                      )}
                       {u.id !== me.id && (
                         <button className="btn btn-danger-ghost btn-sm" onClick={() => remove(u)}>
                           <FontAwesomeIcon icon={faTrash} /> Löschen

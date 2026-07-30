@@ -19,7 +19,9 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self'",
   "connect-src 'self' https://login.microsoftonline.com",
-  "frame-src 'self' https://login.microsoftonline.com",
+  // youtube-nocookie: Video auf der Sperrseite (offizieller YouTube-Embed im
+  // datenschutzfreundlichen Modus, setzt erst beim Abspielen Cookies).
+  "frame-src 'self' https://login.microsoftonline.com https://www.youtube-nocookie.com",
   "form-action 'self'",
 ].join('; ');
 
