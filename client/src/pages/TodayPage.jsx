@@ -118,6 +118,7 @@ export default function TodayPage() {
         <VotePanel data={data} reload={load} />
       )}
       {day.status !== 'phase1' && <WinnerBanner data={data} />}
+      {day.status !== 'phase1' && !data.winner && <NoWinnerPanel data={data} />}
       {day.status === 'phase2' &&
         data.winner &&
         (data.winner.hasMenu ? (
@@ -128,7 +129,7 @@ export default function TodayPage() {
       {(data.participationOptions?.length ?? 0) > 0 && (
         <ParticipationPanel data={data} reload={load} />
       )}
-      {day.status === 'closed' && <ClosedPanel data={data} />}
+      {day.status === 'closed' && data.winner && <ClosedPanel data={data} />}
     </div>
   );
 }
@@ -656,6 +657,26 @@ function groupByCategory(menu) {
     map.get(category).push(item);
   }
   return [...map.entries()];
+}
+
+// Phase 1 ist beendet, aber niemand hat abgestimmt: es wird bewusst kein
+// Restaurant automatisch bestimmt (sonst gewönne willkürlich die erste Option).
+function NoWinnerPanel({ data }) {
+  return (
+    <section className="card">
+      <h2>Kein Abstimmungsergebnis</h2>
+      <div className="notice">
+        Es wurde für keinen Vorschlag abgestimmt – deshalb wurde <b>kein Restaurant</b>{' '}
+        ausgewählt. Die Planung kann für diesen Tag noch manuell eines festlegen.
+        {data.organizerName && (
+          <>
+            {' '}
+            Organisation: <b>{data.organizerName}</b>.
+          </>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function NoMenuPanel({ data }) {

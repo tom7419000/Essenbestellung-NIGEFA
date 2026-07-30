@@ -2,8 +2,10 @@ import { db, getSetting } from './db.js';
 import { notifyOrganizerAssigned, notifyPhaseClosed } from './push.js';
 
 // Gewinner der Phase 1: meiste Stimmen; bei Gleichstand gewinnt die
-// zuerst gelistete Option des Tages. Ohne Stimmen fällt die Wahl auf
-// die erste Option, damit Phase 2 immer stattfinden kann.
+// zuerst gelistete Option des Tages. Hat KEIN Restaurant auch nur eine
+// Stimme, wird bewusst keines bestimmt (null) – sonst gewönne willkürlich
+// die erste Option, obwohl niemand abgestimmt hat. Planung/Admin legt in
+// diesem Fall manuell fest (PATCH /days/:id/winner).
 // Restaurants OHNE Speisekarte (Supermärkte) nehmen NICHT an der Abstimmung
 // teil – sie können nie Gewinner werden (dort läuft nur eine Teilnahmeliste).
 export function tallyWinner(dayId) {
@@ -19,7 +21,8 @@ export function tallyWinner(dayId) {
        ORDER BY votes DESC, dr.position ASC, dr.id ASC`
     )
     .all(dayId);
-  return rows.length ? rows[0].restaurantId : null;
+  const top = rows[0];
+  return top && top.votes > 0 ? top.restaurantId : null;
 }
 
 // Leitet den Status eines Tages aus den Deadlines ab und persistiert

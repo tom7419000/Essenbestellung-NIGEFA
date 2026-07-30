@@ -148,23 +148,32 @@ export default function OrganizerPage() {
                 'Organisation: nicht festgelegt.'
               )}
             </p>
+            {!detail.winner && detail.day.status !== 'phase1' && (
+              <div className="notice">
+                Es wurde für keinen Vorschlag abgestimmt – für diesen Tag wurde{' '}
+                <b>kein Restaurant</b> ausgewählt. Die Planung kann unter „Tage" noch manuell
+                eines festlegen.
+              </div>
+            )}
             {detail.winner && !detail.winner.hasMenu && (
               <div className="notice">
                 Für dieses Restaurant ist keine Speisekarte hinterlegt – Bestellungen werden
                 individuell abgesprochen und tauchen hier nicht auf.
               </div>
             )}
-            {detail.day.status !== 'closed' ? (
-              <div className="notice">
-                Die Bestellphase läuft noch (Bestellschluss {fmtTime(detail.day.phase2Deadline)} Uhr) –
-                diese Liste kann sich noch ändern.
-              </div>
-            ) : (
-              <div className="notice success">
-                Die Bestellphase ist beendet – bitte jetzt die Sammelbestellung beim Restaurant
-                aufgeben.
-              </div>
-            )}
+            {/* Ohne Gewinner gibt es nichts zu bestellen – dann nur der Hinweis oben. */}
+            {detail.winner &&
+              (detail.day.status !== 'closed' ? (
+                <div className="notice">
+                  Die Bestellphase läuft noch (Bestellschluss {fmtTime(detail.day.phase2Deadline)}{' '}
+                  Uhr) – diese Liste kann sich noch ändern.
+                </div>
+              ) : (
+                <div className="notice success">
+                  Die Bestellphase ist beendet – bitte jetzt die Sammelbestellung beim Restaurant
+                  aufgeben.
+                </div>
+              ))}
             {detail.winner?.phone && (
               <p className="muted">
                 ☎ {detail.winner.phone}

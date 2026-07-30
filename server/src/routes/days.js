@@ -587,6 +587,36 @@ daysRouter.patch('/:id/orders-paid', (req, res) => {
   res.json({ ok: true });
 });
 
+// Restaurant des Tages manuell festlegen (Planung/Admin). Gedacht für den
+// Fall, dass niemand abgestimmt hat und deshalb kein Gewinner ermittelt
+// wurde; erlaubt aber auch eine spätere Korrektur. Zulässig sind nur
+// Restaurants, die an dem Tag zur Wahl standen und eine Speisekarte haben.
+daysRouter.patch('/:id/winner', requirePlanner, (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.status === 'phase1') {
+    return res
+      .status(409)
+      .json({ message: 'Die Abstimmung läuft noch – das Ergebnis steht noch nicht fest.' });
+  }
+  const restaurantId = Number(req.body?.restaurantId);
+  const option = db
+    .prepare(
+      `SELECT r.id FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND dr.restaurant_id = ? AND r.has_menu = 1`
+    )
+    .get(day.id, restaurantId);
+  if (!option) {
+    return res
+      .status(400)
+      .json({ message: 'Dieses Restaurant stand an dem Tag nicht mit Speisekarte zur Wahl.' });
+  }
+  db.prepare('UPDATE days SET winning_restaurant_id = ? WHERE id = ?').run(restaurantId, day.id);
+  res.json({ day: mapDay(db.prepare('SELECT * FROM days WHERE id = ?').get(day.id)) });
+});
+
 // ---------- Admin: Tagesplanung ----------
 
 daysRouter.get('/', requirePlanner, (req, res) => {

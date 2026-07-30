@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBolt,
@@ -680,19 +680,42 @@ function AutoPlanCard({ restaurants, onGenerated }) {
 function DayDetail({ dayId }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState('');
+  const [manualWinner, setManualWinner] = useState('');
 
-  useEffect(() => {
-    setDetail(null);
+  const load = useCallback(() => {
     api(`/days/${dayId}/full`)
       .then(setDetail)
       .catch((e) => setError(e.message));
   }, [dayId]);
 
-  if (error) return <div className="alert">{error}</div>;
+  useEffect(() => {
+    setDetail(null);
+    load();
+  }, [load]);
+
+  // Niemand hat abgestimmt: Planung/Admin bestimmt das Restaurant manuell.
+  async function saveWinner() {
+    setError('');
+    try {
+      await api(`/days/${dayId}/winner`, {
+        method: 'PATCH',
+        body: { restaurantId: Number(manualWinner) },
+      });
+      setManualWinner('');
+      load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  if (error && !detail) return <div className="alert">{error}</div>;
   if (!detail) return <div className="page-loading">Lädt …</div>;
+
+  const needsWinner = detail.day.status !== 'phase1' && !detail.day.winningRestaurantId;
 
   return (
     <div className="day-detail">
+      {error && <div className="alert">{error}</div>}
       <h3>Abstimmung</h3>
       <div className="vote-result">
         {detail.restaurants.map((r) => (
@@ -706,6 +729,27 @@ function DayDetail({ dayId }) {
           </span>
         ))}
       </div>
+      {needsWinner && (
+        <div className="notice">
+          <p>
+            Es wurde für keinen Vorschlag abgestimmt – es wurde <b>kein Restaurant</b>{' '}
+            ausgewählt. Bitte hier manuell festlegen:
+          </p>
+          <div className="row wrap">
+            <select value={manualWinner} onChange={(e) => setManualWinner(e.target.value)}>
+              <option value="">– Restaurant wählen –</option>
+              {detail.restaurants.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-primary btn-sm" disabled={!manualWinner} onClick={saveWinner}>
+              <FontAwesomeIcon icon={faCheck} /> Festlegen
+            </button>
+          </div>
+        </div>
+      )}
       {detail.summary.length > 0 && (
         <>
           <h3>Sammelbestellung</h3>
