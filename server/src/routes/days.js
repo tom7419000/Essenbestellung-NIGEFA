@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth, requireAdmin, requirePlanner } from '../auth.js';
@@ -250,6 +251,45 @@ daysRouter.post('/:id/vote', (req, res) => {
      DO UPDATE SET restaurant_id = excluded.restaurant_id, created_at = datetime('now')`
   ).run(day.id, req.user.id, restaurantId);
   res.json({ ok: true });
+});
+
+// Glücksrad: der Server wählt zufällig eines der abstimmbaren Restaurants und
+// verbucht die Stimme SOFORT. Die Animation im Client führt anschließend nur
+// noch auf dieses bereits feststehende Ergebnis hin – sie kann es nicht
+// beeinflussen. Ein zweiter Dreh ist nicht möglich (409), solange eine Stimme
+// vorliegt; damit lässt sich das Ergebnis auch nicht „nachwürfeln".
+daysRouter.post('/:id/vote/random', (req, res) => {
+  let day = getDay(req.params.id);
+  if (!day) return res.status(404).json({ message: 'Tag nicht gefunden.' });
+  day = ensureCurrent(day);
+  if (day.status !== 'phase1') {
+    return res.status(409).json({ message: 'Die Restaurant-Abstimmung ist bereits beendet.' });
+  }
+  const existing = db
+    .prepare('SELECT restaurant_id FROM restaurant_votes WHERE day_id = ? AND user_id = ?')
+    .get(day.id, req.user.id);
+  if (existing) {
+    return res
+      .status(409)
+      .json({ message: 'Du hast bereits abgestimmt – das Glücksrad gibt es nur einmal pro Tag.' });
+  }
+  const options = db
+    .prepare(
+      `SELECT dr.restaurant_id AS id FROM day_restaurants dr
+       JOIN restaurants r ON r.id = dr.restaurant_id
+       WHERE dr.day_id = ? AND r.has_menu = 1
+       ORDER BY dr.position ASC, dr.id ASC`
+    )
+    .all(day.id);
+  if (options.length === 0) {
+    return res.status(409).json({ message: 'Heute steht kein Restaurant zur Wahl.' });
+  }
+  // crypto.randomInt statt Math.random: gleichverteilt und nicht vorhersagbar.
+  const winner = options[randomInt(options.length)].id;
+  db.prepare(
+    'INSERT INTO restaurant_votes (day_id, user_id, restaurant_id) VALUES (?, ?, ?)'
+  ).run(day.id, req.user.id, winner);
+  res.json({ restaurantId: winner });
 });
 
 daysRouter.delete('/:id/vote', (req, res) => {

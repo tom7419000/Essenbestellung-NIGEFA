@@ -479,6 +479,33 @@ input:focus, select:focus, textarea:focus {
 .participation-summary { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
 .participation-summary:last-child { border-bottom: none; }
 
+/* Glücksrad (Phase 1). Die Drehung ist eine reine CSS-Transformation des
+   SVG – Dauer und Zielwinkel setzt die Komponente inline, damit beides
+   nicht auseinanderläuft. */
+.wheel-btn { align-self: flex-start; margin-bottom: 0.4rem; }
+.wheel-modal { max-width: 360px; }
+.wheel-body { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+.wheel-stage { position: relative; display: flex; justify-content: center; }
+.wheel-svg { display: block; will-change: transform; }
+.wheel-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 16px solid var(--text);
+}
+.wheel-result { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
+.wheel-result strong { font-size: 1.2rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-svg { transition: none !important; }
+}
+
 /* Speisekarten-Vorschau (Modal) in Phase 1 */
 .option-menu-btn { margin-top: 0.5rem; }
 .modal-backdrop {

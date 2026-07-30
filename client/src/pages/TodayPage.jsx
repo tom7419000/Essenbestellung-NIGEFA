@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -7,6 +7,7 @@ import {
   faCheck,
   faChevronRight,
   faCircleCheck,
+  faDharmachakra,
   faHandPointUp,
   faTrash,
   faXmark,
@@ -214,6 +215,7 @@ function VotePanel({ data, reload }) {
   const [error, setError] = useState('');
   const [menuFor, setMenuFor] = useState(null);
   const [showVotersFor, setShowVotersFor] = useState(null);
+  const [wheelOpen, setWheelOpen] = useState(false);
   const maxVotes = Math.max(0, ...data.restaurants.map((r) => r.votes));
 
   async function vote(restaurantId) {
@@ -241,6 +243,13 @@ function VotePanel({ data, reload }) {
       <p className="muted">
         Stimme für ein Restaurant ab – du kannst deine Stimme bis zum Ende der Abstimmung ändern.
       </p>
+      {/* Glücksrad nur, solange noch keine Stimme vorliegt – es entscheidet
+          für die eigene, offene Stimme. */}
+      {!data.myVote && data.restaurants.length > 1 && (
+        <button type="button" className="btn wheel-btn" disabled={busy} onClick={() => setWheelOpen(true)}>
+          <FontAwesomeIcon icon={faDharmachakra} /> Glücksrad – Stimme zufällig vergeben
+        </button>
+      )}
       {error && <div className="alert">{error}</div>}
       <div className="option-grid">
         {data.restaurants.map((r) => {
@@ -295,7 +304,202 @@ function VotePanel({ data, reload }) {
       {menuFor && (
         <MenuModal dayId={data.day.id} restaurant={menuFor} onClose={() => setMenuFor(null)} />
       )}
+      {wheelOpen && (
+        <WheelModal
+          dayId={data.day.id}
+          restaurants={data.restaurants}
+          onClose={() => {
+            setWheelOpen(false);
+            reload();
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+const WHEEL_SPINS = 5; // volle Umdrehungen vor dem Stopp
+const WHEEL_MS = 4200;
+
+// Farbpaare aus dem Badge-Satz des Portals: in hellem wie dunklem Modus
+// erprobt kontrastreich (Fläche hell getönt, Schrift kräftig).
+const WHEEL_COLORS = [
+  { fill: 'var(--accent-soft)', text: 'var(--accent-dark)' },
+  { fill: 'var(--blue-soft)', text: 'var(--blue)' },
+  { fill: 'var(--green-soft)', text: 'var(--green)' },
+  { fill: 'var(--amber-soft)', text: 'var(--amber)' },
+  { fill: 'var(--red-soft)', text: 'var(--red)' },
+];
+
+// Kreissegment als SVG-Pfad. 0° zeigt nach oben (12 Uhr), im Uhrzeigersinn.
+function segmentPath(index, count, cx, cy, r) {
+  const seg = 360 / count;
+  const toXY = (deg) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+  if (count === 1) {
+    // Vollkreis lässt sich nicht als einzelner Bogen zeichnen.
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`;
+  }
+  const [x1, y1] = toXY(index * seg);
+  const [x2, y2] = toXY((index + 1) * seg);
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${seg > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
+}
+
+// Glücksrad für die eigene, noch nicht abgegebene Stimme.
+//
+// Wichtig: Das Ergebnis bestimmt AUSSCHLIESSLICH der Server. Beim Öffnen ruft
+// die Komponente POST /days/:id/vote/random auf – dort wird per crypto.randomInt
+// gezogen und die Stimme sofort verbucht. Erst danach beginnt die Drehung, die
+// lediglich auf das bereits feststehende Segment hinführt. Ein Eingriff im
+// Browser (Abbruch, veränderte Animation, erneuter Aufruf) ändert die bereits
+// gespeicherte Stimme nicht; ein zweiter Dreh wird serverseitig abgelehnt.
+function WheelModal({ dayId, restaurants, onClose }) {
+  // Segmentliste beim Öffnen einfrieren, damit das Neuladen im Hintergrund
+  // (Polling alle 15 s) die laufende Drehung nicht neu startet.
+  const [segments] = useState(() => restaurants);
+  const [angle, setAngle] = useState(0);
+  const [winner, setWinner] = useState(null);
+  const [error, setError] = useState('');
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.classList.add('no-scroll');
+    let active = true;
+    let timer = null;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    api(`/days/${dayId}/vote/random`, { method: 'POST' })
+      .then((d) => {
+        if (!active) return;
+        const index = segments.findIndex((r) => r.id === d.restaurantId);
+        if (index < 0) {
+          setError('Unerwartetes Ergebnis – bitte die Seite neu laden.');
+          return;
+        }
+        const seg = 360 / segments.length;
+        // Versatz innerhalb des Segments: rein optisch, damit das Rad nicht
+        // immer exakt mittig stoppt. Bleibt sicher innerhalb des Segments.
+        const jitter = (Math.random() - 0.5) * seg * 0.6;
+        const center = index * seg + seg / 2;
+        if (reduced) {
+          setAngle(-center);
+          setWinner(segments[index]);
+          return;
+        }
+        setAngle(360 * WHEEL_SPINS - center - jitter);
+        timer = setTimeout(() => active && setWinner(segments[index]), WHEEL_MS);
+      })
+      .catch((e) => active && setError(e.message));
+
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('no-scroll');
+    };
+  }, [dayId, segments]);
+
+  const size = 260;
+  const c = size / 2;
+  const r = c - 6;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal wheel-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Glücksrad"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h2>Glücksrad</h2>
+          <button className="btn btn-ghost" aria-label="Schließen" onClick={onClose}>
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        </div>
+        <div className="modal-body wheel-body">
+          {error ? (
+            <div className="alert">{error}</div>
+          ) : (
+            <>
+              <div className="wheel-stage">
+                <div className="wheel-pointer" aria-hidden="true" />
+                <svg
+                  className="wheel-svg"
+                  width={size}
+                  height={size}
+                  viewBox={`0 0 ${size} ${size}`}
+                  role="img"
+                  aria-label={`Rad mit ${segments.length} Restaurants`}
+                  style={{
+                    transform: `rotate(${angle}deg)`,
+                    transition: `transform ${WHEEL_MS}ms cubic-bezier(.15,.9,.2,1)`,
+                  }}
+                >
+                  {segments.map((restaurant, i) => {
+                    const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+                    const seg = 360 / segments.length;
+                    const mid = i * seg + seg / 2;
+                    const ty = c - r * 0.62;
+                    // Beschriftung in der unteren Radhälfte um die eigene
+                    // Achse kippen, sonst steht sie auf dem Kopf.
+                    const upright = mid > 90 && mid < 270 ? ` rotate(180 ${c} ${ty})` : '';
+                    return (
+                      <g key={restaurant.id}>
+                        <path
+                          d={segmentPath(i, segments.length, c, c, r)}
+                          fill={color.fill}
+                          stroke="var(--card)"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={c}
+                          y={ty}
+                          fill={color.text}
+                          fontSize="11"
+                          fontWeight="700"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          transform={`rotate(${mid} ${c} ${c})${upright}`}
+                        >
+                          {restaurant.name.length > 16
+                            ? `${restaurant.name.slice(0, 15)}…`
+                            : restaurant.name}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <circle cx={c} cy={c} r="16" fill="var(--card)" stroke="var(--border)" strokeWidth="2" />
+                </svg>
+              </div>
+              <div className="wheel-result" aria-live="polite">
+                {winner ? (
+                  <>
+                    <strong>{winner.name}</strong>
+                    <span className="muted">Deine Stimme wurde abgegeben.</span>
+                  </>
+                ) : (
+                  <span className="muted">Das Rad dreht sich …</span>
+                )}
+              </div>
+              {winner && (
+                <button className="btn btn-primary btn-block" onClick={onClose}>
+                  <FontAwesomeIcon icon={faCheck} /> Alles klar
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
