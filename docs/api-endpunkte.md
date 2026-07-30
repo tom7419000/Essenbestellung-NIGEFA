@@ -10,7 +10,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
-| POST | `/auth/login` | 🔓 | Anmeldung. Body: `{username, password}` → `{token, user}` |
+| POST | `/auth/login` | 🔓 | Anmeldung. Body: `{username, password}` → `{token, user}`. Gesperrte Konten: `403 {blocked: true}` (erst nach korrekter Passwortprüfung, damit keine Konten preisgegeben werden). |
 | GET | `/auth/me` | 👤 | Eigenes Profil zum Sitzungs-Check |
 | POST | `/auth/change-password` | 👤 | Body: `{oldPassword, newPassword}` |
 
@@ -21,6 +21,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | GET | `/days/today` | 👤 | Kompletter Zustand des heutigen Tages: Phase, Deadlines, abstimmbare Restaurants mit Stimmen **und Namen der Abstimmenden** (`voters`), Teilnahme-Optionen (Restaurants ohne Speisekarte), eigene Stimme; ab Phase 2 zusätzlich Gewinner, Speisekarte, eigene Bestellung. Enthält `serverNow` für den Countdown-Abgleich. |
 | GET | `/days/:id/menu/:restaurantId` | 👤 | Speisekarte eines zur Wahl stehenden Restaurants (für die Vorschau in Phase 1). Tagesessen für den Wochentag des Tages gefiltert; ohne Speisekarte leere Liste. |
 | POST | `/days/:id/vote` | 👤 | Abstimmen (nur Phase 1). Body: `{restaurantId}`. Erneuter Aufruf ändert die Stimme. Restaurants **ohne** Speisekarte sind nicht abstimmbar (→ Teilnahmeliste). |
+| POST | `/days/:id/vote/random` | 👤 | **Glücksrad**: Server zieht per `crypto.randomInt` eines der abstimmbaren Restaurants und verbucht die Stimme sofort → `{restaurantId}`. Nur in Phase 1 und nur, solange keine eigene Stimme vorliegt (sonst 409) – das Ergebnis ist damit nicht im Browser beeinflussbar. |
 | DELETE | `/days/:id/vote` | 👤 | Eigene Stimme zurückziehen (nur Phase 1) |
 | POST | `/days/:id/order` | 👤 | Bestellen (nur Phase 2). Body: `{menuItemIds:[…], note}` (**Mehrfachauswahl**; einzelnes `menuItemId` weiter akzeptiert). Erneuter Aufruf ersetzt die Auswahl; alle Gerichte müssen zum Gewinner-Restaurant gehören und – bei Wochentags-Bindung (Tagesessen) – am Wochentag des Tages gültig sein (sonst 409). |
 | DELETE | `/days/:id/order` | 👤 | Eigene Bestellung löschen (nur Phase 2) |
@@ -40,7 +41,8 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 
 | Methode | Pfad | Rolle | Beschreibung |
 | --- | --- | :-: | --- |
-| GET | `/my/orders` | 👤 | Eigene Bestellhistorie (Datum, Restaurant, Gerichte, Summe, Status) |
+| GET | `/my/orders` | 👤 | Eigene Bestellhistorie (Datum, Restaurant, Gerichte inkl. Kategorie, Summe, Status) |
+| GET | `/stats/wrapped` | 👤 | Jahresrückblick. Query: `?zeitraum=2026` \| `gesamt` (unbekannte Werte fallen auf das laufende Jahr zurück) → `{period, availablePeriods[], personal, global}`. Stornierte Bestellungen zählen nicht mit. |
 
 ## Push-Benachrichtigungen
 
@@ -50,6 +52,8 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/push/subscribe` | 👤 | Web-Push-Abonnement dieses Geräts speichern. Body: `{endpoint, keys:{p256dh, auth}}` |
 | POST | `/push/unsubscribe` | 👤 | Abonnement dieses Geräts entfernen. Body: `{endpoint}` |
 | POST | `/push/test` | 👤 | Test-Benachrichtigung an die eigenen Geräte senden |
+| GET | `/push/broadcast` | 🔑 | Übersicht für die Rundnachricht: `{available, recipients, targets[], last}` (`last` = Stand des letzten Versands) |
+| POST | `/push/broadcast` | 🔑 | Rundnachricht an alle Abonnenten. Body: `{title, body, url}` (`url` nur aus `targets`) → **202** `{status}`; der Versand läuft im Hintergrund, das Ergebnis liefert `GET /push/broadcast`. Ausdrücklich **nicht** für die Rolle „Planung". |
 
 ## Administration
 
@@ -59,6 +63,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | POST | `/days` | 🗓️ | Tag anlegen. Body: `{date, organizerId, organizerMode, phase1Deadline, phase2Deadline, restaurantIds[]}` (Deadlines als ISO-Zeitstempel) |
 | PUT | `/days/:id` | 🗓️ | Tag ändern (gleicher Body). Status/Gewinner werden aus den neuen Deadlines neu berechnet. |
 | DELETE | `/days/:id` | 🗓️ | Tag inkl. Stimmen und Bestellungen löschen |
+| PATCH | `/days/:id/winner` | 🗓️ | Restaurant des Tages manuell festlegen. Body: `{restaurantId}`. Gedacht für Tage **ohne jede Stimme** – dort wird bewusst kein Gewinner automatisch bestimmt. Nur Restaurants, die an dem Tag mit Speisekarte zur Wahl standen; während Phase 1 → 409. |
 | GET | `/days/auto-plan` | 🗓️ | Konfiguration der automatischen Tagesplanung (Mo–Fr) |
 | PUT | `/days/auto-plan` | 🗓️ | Konfiguration speichern **und** betroffene zukünftige Auto-Tage neu erzeugen. Body: `{enabled, daysAhead, organizerMode, phase1Time, phase2Time, weekdays:{1..5:{mode:"fest"\|"rotierend", restaurantIds[]}}, holidays[]}` → `{config, regenerated:{created[], removed[], kept[]}}` (geschützt: manuell bearbeitete/bestellte/heutige/vergangene/gelöschte Tage) |
 | POST | `/days/auto-plan/run` | 🗓️ | Fehlende Tage jetzt erzeugen → `{enabled, created[], skipped[]}` (bestehende Tage bleiben unberührt) |
@@ -66,6 +71,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | GET | `/users` | 🔑 | Benutzerliste |
 | POST | `/users` | 🔑 | Benutzer anlegen. Body: `{username, displayName, password, role}` (`role`: `user` \| `planung` \| `admin`) |
 | PUT | `/users/:id` | 🔑 | Benutzer ändern (`displayName`, `role`, `isActive`, optional `password`) |
+| PATCH | `/users/:id/blocked` | 🔑 | Konto **sperren/entsperren**. Body: `{blocked}`. Beim Sperren werden laufende Sitzungen sofort ungültig (Token-Version). Selbstsperre → 400. Gesperrte Konten erhalten bei Login, SSO und jedem Request `403 {blocked: true}`. |
 | DELETE | `/users/:id` | 🔑 | Benutzer löschen (eigenes Konto ausgenommen) |
 | GET | `/restaurants` | 👤 | Aktive Restaurants (`?all=1` als Admin: inkl. deaktivierter) |
 | POST | `/restaurants` | 🔑 | Restaurant anlegen |
