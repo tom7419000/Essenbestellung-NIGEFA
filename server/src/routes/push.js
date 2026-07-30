@@ -1,11 +1,16 @@
 import { Router } from 'express';
-import { requireAuth } from '../auth.js';
+import { requireAdmin, requireAuth } from '../auth.js';
+import { auditLog } from '../audit.js';
 import {
+  BROADCAST_TARGETS,
+  countBroadcastRecipients,
+  getBroadcastStatus,
   getPublicKey,
   pushAvailable,
   removeSubscription,
   saveSubscription,
   sendTest,
+  startBroadcast,
   subscriptionCount,
 } from '../push.js';
 
@@ -39,6 +44,42 @@ router.post('/test', async (req, res) => {
   try {
     await sendTest(req.user.id);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(503).json({ message: e.message });
+  }
+});
+
+// ---------- Rundnachricht (nur Administratoren) ----------
+// requireAdmin prüft die Rolle serverseitig; „Planung" reicht ausdrücklich
+// nicht aus.
+
+router.get('/broadcast', requireAdmin, (req, res) => {
+  res.json({
+    available: pushAvailable(),
+    recipients: countBroadcastRecipients(),
+    targets: BROADCAST_TARGETS,
+    last: getBroadcastStatus(),
+  });
+});
+
+router.post('/broadcast', requireAdmin, (req, res) => {
+  const title = String(req.body?.title || '').trim();
+  const body = String(req.body?.body || '').trim();
+  const url = String(req.body?.url || '').trim();
+  if (!title || !body) {
+    return res.status(400).json({ message: 'Bitte Titel und Nachricht angeben.' });
+  }
+  if (title.length > 80 || body.length > 300) {
+    return res.status(400).json({ message: 'Titel max. 80, Nachricht max. 300 Zeichen.' });
+  }
+  if (url && !BROADCAST_TARGETS.some((t) => t.value === url)) {
+    return res.status(400).json({ message: 'Unbekanntes Ziel im Portal.' });
+  }
+  try {
+    // Startet den Versand im Hintergrund und antwortet sofort (202).
+    const status = startBroadcast({ title, body, url });
+    auditLog('push_broadcast', req, { title, recipients: status.recipients });
+    res.status(202).json({ status });
   } catch (e) {
     res.status(503).json({ message: e.message });
   }

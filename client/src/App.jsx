@@ -9,6 +9,7 @@ import MyOrdersPage from './pages/MyOrdersPage.jsx';
 import OrganizerPage from './pages/OrganizerPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import UsersAdmin from './pages/admin/UsersAdmin.jsx';
+import PushAdmin from './pages/admin/PushAdmin.jsx';
 import RestaurantsAdmin from './pages/admin/RestaurantsAdmin.jsx';
 import DaysAdmin from './pages/admin/DaysAdmin.jsx';
 import DesignAdmin from './pages/admin/DesignAdmin.jsx';
@@ -65,6 +66,14 @@ export default function App() {
               element={
                 <Protected adminOnly>
                   <UsersAdmin />
+                </Protected>
+              }
+            />
+            <Route
+              path="/admin/benachrichtigungen"
+              element={
+                <Protected adminOnly>
+                  <PushAdmin />
                 </Protected>
               }
             />

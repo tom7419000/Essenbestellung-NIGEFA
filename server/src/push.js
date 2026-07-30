@@ -69,17 +69,21 @@ export function subscriptionCount(userId) {
 
 // ---------- Versand ----------
 
+// Liefert {delivered, failed}: Anzahl der Geräte, die erreicht wurden bzw.
+// nicht. Die bestehenden Auslöser ignorieren den Rückgabewert; die
+// Rundnachricht wertet ihn für die Zusammenfassung aus.
 async function sendToUser(userId, payload) {
-  if (!pushAvailable() || !userId) return;
+  if (!pushAvailable() || !userId) return { delivered: 0, failed: 0 };
   const subs = db.prepare('SELECT * FROM push_subscriptions WHERE user_id = ?').all(userId);
   const data = JSON.stringify(payload);
-  await Promise.all(
+  const results = await Promise.all(
     subs.map(async (s) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           data
         );
+        return true;
       } catch (e) {
         // Abgelaufene/ungültige Endpunkte entfernen; andere Fehler nur loggen.
         if (e.statusCode === 404 || e.statusCode === 410) {
@@ -87,9 +91,14 @@ async function sendToUser(userId, payload) {
         } else {
           console.warn('[push] Senden fehlgeschlagen:', e.statusCode || e.message);
         }
+        return false;
       }
     })
   );
+  return {
+    delivered: results.filter(Boolean).length,
+    failed: results.filter((ok) => !ok).length,
+  };
 }
 
 function fireAndForget(promise) {
@@ -142,6 +151,99 @@ export function notifyPhaseClosed(day) {
       data: { url: '/organisation' },
     })
   );
+}
+
+// ---------- Rundnachricht an alle Abonnenten (Admin) ----------
+
+// Ziele im Portal, auf die eine Rundnachricht verlinken darf. Bewusst eine
+// feste Liste statt freier URLs: verhindert Weiterleitungen nach außen.
+export const BROADCAST_TARGETS = [
+  { value: '/', label: 'Startseite (Abstimmung & Bestellung)' },
+  { value: '/meine-bestellungen', label: 'Meine Bestellungen' },
+  { value: '/organisation', label: 'Organisation' },
+  { value: '/einstellungen', label: 'Einstellungen' },
+];
+
+// Zustand des letzten Versands. Bewusst nur im Arbeitsspeicher: die Angabe
+// ist eine kurzlebige Rückmeldung für den Admin, kein Protokoll.
+let lastBroadcast = null;
+export function getBroadcastStatus() {
+  return lastBroadcast;
+}
+
+// Empfänger = Konten mit mindestens einem Abonnement, die weder gesperrt
+// noch deaktiviert sind.
+function broadcastRecipients() {
+  return db
+    .prepare(
+      `SELECT DISTINCT s.user_id AS userId
+       FROM push_subscriptions s
+       JOIN users u ON u.id = s.user_id
+       WHERE u.is_active = 1 AND u.is_blocked = 0`
+    )
+    .all()
+    .map((r) => r.userId);
+}
+
+export function countBroadcastRecipients() {
+  return broadcastRecipients().length;
+}
+
+// Versand im Hintergrund, in Blöcken – so blockiert die Antwort an den Admin
+// nicht und viele Zustellungen überlasten den Push-Dienst nicht.
+async function runBroadcast(userIds, payload) {
+  const CHUNK = 10;
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < userIds.length; i += CHUNK) {
+    const chunk = userIds.slice(i, i + CHUNK);
+    const results = await Promise.all(
+      chunk.map((id) =>
+        sendToUser(id, payload).then(
+          (r) => r.delivered > 0,
+          () => false
+        )
+      )
+    );
+    // Gezählt wird pro Nutzer: erreicht, sobald mindestens ein Gerät die
+    // Nachricht angenommen hat.
+    for (const ok of results) {
+      if (ok) sent += 1;
+      else failed += 1;
+    }
+    lastBroadcast = { ...lastBroadcast, sent, failed };
+  }
+  lastBroadcast = { ...lastBroadcast, sent, failed, running: false, finishedAt: new Date().toISOString() };
+}
+
+// Startet den Versand und kehrt sofort zurück. Liefert die Empfängerzahl,
+// das Ergebnis holt der Client anschließend über getBroadcastStatus().
+export function startBroadcast({ title, body, url }) {
+  if (!pushAvailable()) throw new Error('Push ist auf dem Server nicht verfügbar.');
+  const userIds = broadcastRecipients();
+  lastBroadcast = {
+    title,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    recipients: userIds.length,
+    sent: 0,
+    failed: 0,
+    running: userIds.length > 0,
+  };
+  if (userIds.length === 0) {
+    lastBroadcast.running = false;
+    lastBroadcast.finishedAt = lastBroadcast.startedAt;
+    return lastBroadcast;
+  }
+  fireAndForget(
+    runBroadcast(userIds, {
+      title,
+      body,
+      tag: 'broadcast',
+      data: { url: url || '/' },
+    })
+  );
+  return lastBroadcast;
 }
 
 export async function sendTest(userId) {

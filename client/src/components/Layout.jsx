@@ -32,6 +32,7 @@ const ADMIN_LINKS = [
   { to: '/admin/tage', icon: faCalendarDays, label: 'Tagesplanung' },
   { to: '/admin/restaurants', icon: faStore, label: 'Restaurants & Speisekarten' },
   { to: '/admin/benutzer', icon: faUsers, label: 'Benutzer' },
+  { to: '/admin/benachrichtigungen', icon: faBell, label: 'Benachrichtigung an alle' },
   { to: '/admin/design', icon: faPalette, label: 'Design & Branding' },
   { to: '/admin/sso', icon: faKey, label: 'Anmeldung (SSO)' },
 ];
