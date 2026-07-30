@@ -5,6 +5,7 @@ import {
   faBars,
   faBell,
   faCalendarDays,
+  faChartSimple,
   faChevronDown,
   faClipboardList,
   faGear,
@@ -142,6 +143,7 @@ export default function Layout() {
   const mainLinks = [
     { to: '/', icon: faUtensils, label: 'Heute', end: true },
     { to: '/meine-bestellungen', icon: faReceipt, label: 'Meine Bestellungen' },
+    { to: '/rueckblick', icon: faChartSimple, label: 'Rückblick' },
     ...(showOrganizerLink
       ? [{ to: '/organisation', icon: faClipboardList, label: 'Organisation' }]
       : []),

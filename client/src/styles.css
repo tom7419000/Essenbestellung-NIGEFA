@@ -883,6 +883,66 @@ td.orderers {
 .select-list-item.selected { border-color: var(--accent); background: var(--accent-soft); }
 .select-list-item .badge { margin-left: 0.4rem; }
 
+/* ---------- Rückblick („Wrapped") ---------- */
+
+.wrapped-deck { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.wrapped-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 20rem;
+  padding: 2.5rem 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+  /* Farbton je Karte; die Soft-Varianten funktionieren in hell und dunkel. */
+  background: linear-gradient(160deg, var(--slide-tint), var(--card) 70%);
+}
+.wrapped-slide.tint-accent { --slide-tint: var(--accent-soft); }
+.wrapped-slide.tint-blue { --slide-tint: var(--blue-soft); }
+.wrapped-slide.tint-green { --slide-tint: var(--green-soft); }
+.wrapped-slide.tint-amber { --slide-tint: var(--amber-soft); }
+
+.wrapped-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+.wrapped-figure {
+  font-size: clamp(3rem, 12vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+.wrapped-figure.small { font-size: clamp(1.7rem, 6vw, 2.8rem); }
+.wrapped-caption {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.wrapped-line { max-width: 32rem; margin: 0.3rem 0 0; font-size: 1.02rem; }
+
+.wrapped-nav { display: flex; align-items: center; justify-content: center; gap: 0.8rem; }
+.wrapped-dots { display: flex; gap: 0.4rem; }
+.wrapped-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+}
+.wrapped-dot.active { background: var(--accent); }
+.wrapped-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* ---------- Login ---------- */
 
 .login-wrap {

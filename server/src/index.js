@@ -18,6 +18,7 @@ import brandingRouter, { faviconAlias } from './routes/branding.js';
 import menuImportRouter from './routes/menuImport.js';
 import ssoRouter, { wellKnownHandler } from './routes/sso.js';
 import pushRouter from './routes/push.js';
+import statsRouter from './routes/stats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PORT roh übernehmen (nicht per Number() erzwingen): Phusion Passenger –
@@ -76,6 +77,7 @@ app.use('/api/branding', brandingRouter);
 app.use('/api/menu-import', menuImportRouter);
 app.use('/api/sso', ssoRouter);
 app.use('/api/push', pushRouter);
+app.use('/api/stats', statsRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Nicht gefunden.' }));
 

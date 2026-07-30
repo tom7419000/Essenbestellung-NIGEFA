@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import BlockedPage from './pages/BlockedPage.jsx';
 import TodayPage from './pages/TodayPage.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
+import WrappedPage from './pages/WrappedPage.jsx';
 import OrganizerPage from './pages/OrganizerPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import UsersAdmin from './pages/admin/UsersAdmin.jsx';
@@ -43,6 +44,7 @@ export default function App() {
           >
             <Route path="/" element={<TodayPage />} />
             <Route path="/meine-bestellungen" element={<MyOrdersPage />} />
+            <Route path="/rueckblick" element={<WrappedPage />} />
             <Route path="/organisation" element={<OrganizerPage />} />
             <Route path="/einstellungen" element={<SettingsPage />} />
             <Route

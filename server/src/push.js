@@ -161,6 +161,7 @@ export const BROADCAST_TARGETS = [
   { value: '/', label: 'Startseite (Abstimmung & Bestellung)' },
   { value: '/meine-bestellungen', label: 'Meine Bestellungen' },
   { value: '/organisation', label: 'Organisation' },
+  { value: '/rueckblick', label: 'Rückblick' },
   { value: '/einstellungen', label: 'Einstellungen' },
 ];
 
