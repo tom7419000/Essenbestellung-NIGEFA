@@ -85,7 +85,7 @@ Rollen-Legende: 🔓 öffentlich · 👤 angemeldet · 📋 Organisator des Tage
 | PUT | `/menu-items/:id` | 🔑 | Gericht ändern (inkl. `isActive`, `weekdays[]`) |
 | DELETE | `/menu-items/:id` | 🔑 | Gericht löschen; bereits bestellte Gerichte werden deaktiviert |
 | GET | `/settings` | 🗓️ | Standard-Abstimmungszeiten und Organisator-Modus |
-| PUT | `/settings` | 🗓️ | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode, organizerAssignMinutes}` |
+| PUT | `/settings` | 🗓️ | Body: `{defaultPhase1Time, defaultPhase2Time, defaultOrganizerMode}` |
 | GET | `/sso/settings` | 🔑 | SSO-Konfiguration (Client-/Tenant-ID, Verbundanmeldung) |
 | PUT | `/sso/settings` | 🔑 | SSO speichern. Body: `{enabled, autoRedirect, clientId, tenantId, ficIssuer, ficSubject, ficAudience}` |
 | POST | `/sso/test` | 🔑 | Verbindungstest: holt per Verbundanmeldeinformation ein Token von Entra ID → `{ok, message}` |

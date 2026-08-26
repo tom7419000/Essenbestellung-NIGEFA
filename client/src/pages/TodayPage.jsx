@@ -86,7 +86,7 @@ export default function TodayPage() {
             ) : day.organizerMode === 'freiwillig' ? (
               'Organisation heute: noch offen – Freiwillige gesucht!'
             ) : day.organizerMode === 'zufaellig' ? (
-              'Organisation heute: wird zufällig aus den Mitbestellern bestimmt.'
+              'Organisation heute: wird nach Bestellschluss zufällig aus den Mitbestellern bestimmt.'
             ) : (
               'Für heute ist noch kein Organisator festgelegt.'
             )}

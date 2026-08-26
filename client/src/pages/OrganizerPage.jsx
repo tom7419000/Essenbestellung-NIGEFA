@@ -143,7 +143,7 @@ export default function OrganizerPage() {
                   </span>
                 </>
               ) : detail.day.organizerMode !== 'manuell' ? (
-                'Organisation: wird noch bestimmt (freiwillige Meldung bzw. Zufallsauswahl).'
+                'Organisation: wird noch bestimmt – freiwillige Meldung, sonst Zufallsauswahl nach Bestellschluss.'
               ) : (
                 'Organisation: nicht festgelegt.'
               )}

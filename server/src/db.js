@@ -327,6 +327,16 @@ const migrations = [
       }
     },
   },
+  {
+    version: 14,
+    name: 'organizer_assign_minutes entfernt (Zuweisung erst nach Bestellschluss)',
+    up() {
+      // Der Zuweisungszeitpunkt ist nicht mehr einstellbar: gezogen wird
+      // ausschließlich nach Bestellschluss. Die Einstellung wird nicht mehr
+      // gelesen und daher entfernt.
+      db.prepare("DELETE FROM settings WHERE key = 'organizer_assign_minutes'").run();
+    },
+  },
 ];
 
 export function runMigrations({ log = () => {} } = {}) {
@@ -352,7 +362,6 @@ export function initDb() {
   insertSetting.run('default_phase1_time', '10:30');
   insertSetting.run('default_phase2_time', '11:45');
   insertSetting.run('default_organizer_mode', 'manuell');
-  insertSetting.run('organizer_assign_minutes', '0');
 }
 
 export function getSetting(key, fallback = null) {

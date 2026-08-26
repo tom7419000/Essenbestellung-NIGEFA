@@ -382,9 +382,9 @@ export default function DaysAdmin() {
         <div className="card">
           <h2>Standardeinstellungen</h2>
           <p className="muted">
-            Vorbelegung für neue Tage sowie der Zeitpunkt, zu dem bei freiwilliger Meldung ohne
-            Kandidat bzw. im Zufallsmodus automatisch ein Organisator aus den Mitbestellern
-            bestimmt wird.
+            Vorbelegung für neue Tage. Bei freiwilliger Meldung ohne Kandidat bzw. im
+            Zufallsmodus wird <b>nach Bestellschluss</b> automatisch ein Organisator aus den
+            Mitbestellern bestimmt – erst dann steht fest, wer alles mitbestellt hat.
           </p>
           <form className="row wrap" onSubmit={saveSettings}>
             <label className="inline-select">
@@ -414,22 +414,6 @@ export default function DaysAdmin() {
                     {m.label}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="inline-select">
-              Zuweisung
-              <select
-                value={String(settings.organizerAssignMinutes)}
-                onChange={(e) =>
-                  setSettings({ ...settings, organizerAssignMinutes: Number(e.target.value) })
-                }
-              >
-                <option value="0">zum Bestellschluss</option>
-                <option value="5">5 Min. vor Bestellschluss</option>
-                <option value="10">10 Min. vor Bestellschluss</option>
-                <option value="15">15 Min. vor Bestellschluss</option>
-                <option value="30">30 Min. vor Bestellschluss</option>
-                <option value="60">60 Min. vor Bestellschluss</option>
               </select>
             </label>
             <button className="btn btn-primary">

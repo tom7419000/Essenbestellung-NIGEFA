@@ -1,4 +1,4 @@
-import { db, getSetting } from './db.js';
+import { db } from './db.js';
 import { notifyOrganizerAssigned, notifyPhaseClosed } from './push.js';
 
 // Gewinner der Phase 1: meiste Stimmen; bei Gleichstand gewinnt die
@@ -59,20 +59,20 @@ export function ensureCurrent(day) {
 }
 
 // Automatische Organisator-Zuweisung:
-// - Modus "zufaellig": zum konfigurierten Zeitpunkt wird zufällig eine Person
-//   aus den Mitbestellern des Tages bestimmt.
+// - Modus "zufaellig": nach Bestellschluss wird zufällig eine Person aus den
+//   Mitbestellern des Tages bestimmt.
 // - Modus "freiwillig": gleiche Logik als Fallback – hat sich bis zum
-//   Zeitpunkt niemand freiwillig gemeldet, wird zufällig zugewiesen.
-// Zeitpunkt: organizer_assign_minutes Minuten vor dem Bestellschluss
-// (0 = genau zum Bestellschluss). Läuft auch nach Tagesabschluss nach,
-// falls der Server zum Stichzeitpunkt nicht lief.
+//   Bestellschluss niemand freiwillig gemeldet, wird zufällig zugewiesen.
+//
+// Zeitpunkt ist bewusst der Bestellschluss und nicht früher: Wer erst kurz
+// davor bestellt, wäre bei einer früheren Ziehung nicht im Topf gewesen und
+// könnte sich der Organisation dauerhaft entziehen. Erst nach Bestellschluss
+// steht der Kreis der Mitbesteller endgültig fest.
+// Läuft auch später nach, falls der Server zum Bestellschluss nicht lief.
 function maybeAssignOrganizer(day) {
   if (!day || day.organizer_id != null) return day;
   if (day.organizer_mode !== 'freiwillig' && day.organizer_mode !== 'zufaellig') return day;
-  if (day.status === 'phase1') return day;
-
-  const minutes = Number(getSetting('organizer_assign_minutes', '0')) || 0;
-  if (Date.now() < Date.parse(day.phase2_deadline) - minutes * 60_000) return day;
+  if (day.status !== 'closed') return day;
 
   const orderers = db
     .prepare("SELECT user_id FROM orders WHERE day_id = ? AND status != 'storniert'")
